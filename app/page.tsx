@@ -210,7 +210,7 @@ export default function Home() {
             <AssistantPanel />
           </div>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-[1fr_0.78fr]">
+          <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.78fr)]">
             <ProjectsTable />
             <ActivityPanel />
           </div>
@@ -526,7 +526,7 @@ function ProjectsTable() {
       </div>
 
       <div className="mt-5 overflow-x-auto">
-        <table className="w-full min-w-[680px] border-separate border-spacing-y-2 text-left">
+        <table className="w-full min-w-[620px] border-separate border-spacing-y-2 text-left">
           <thead>
             <tr className="text-xs uppercase text-slate-500">
               <th className="px-3 py-2 font-medium">Project name</th>
@@ -549,7 +549,7 @@ function ProjectsTable() {
                 </td>
                 <td className="border-y border-white/10 px-3 py-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-2 w-28 rounded-full bg-slate-800">
+                    <div className="h-2 w-20 rounded-full bg-slate-800 sm:w-28">
                       <div
                         className="h-2 rounded-full bg-gradient-to-r from-cyan-300 to-violet-400"
                         style={{ width: `${project.progress}%` }}
@@ -578,7 +578,7 @@ function ActivityPanel() {
           <p className="text-sm font-medium text-violet-100">Recent Activity</p>
           <h2 className="mt-2 text-xl font-semibold text-white">Operations feed</h2>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300">
+        <div className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300">
           Live
         </div>
       </div>
@@ -589,9 +589,9 @@ function ActivityPanel() {
             <div className="flex items-start gap-3">
               <span className={clsx("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", activityTone[item.tone])} />
               <div className="min-w-0 flex-1">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm font-semibold text-white">{item.title}</p>
-                  <p className="text-xs text-slate-500">{item.time}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 text-sm font-semibold leading-6 text-white">{item.title}</p>
+                  <p className="shrink-0 whitespace-nowrap text-xs leading-6 text-slate-500">{item.time}</p>
                 </div>
                 <p className="mt-1 text-sm leading-6 text-slate-400">{item.detail}</p>
               </div>
