@@ -15,6 +15,7 @@ import {
   Clock3,
   DatabaseZap,
   Gauge,
+  Globe2,
   LayoutDashboard,
   Menu,
   PanelLeft,
@@ -31,6 +32,7 @@ import {
   Sparkles,
   Trash2,
   Users,
+  Building2,
   X
 } from "lucide-react";
 import clsx from "clsx";
@@ -149,6 +151,8 @@ const languageOptions: Array<{ value: Lang; label: string }> = [
   { value: "en", label: "EN" }
 ];
 
+const workspaceOptions = ["Acme Growth Cloud", "Nova Labs AI", "Orbit Finance Ops"];
+
 const translations: Record<Lang, Record<string, string>> = {
   en: {},
   "zh-Hant": {
@@ -166,6 +170,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "Expand sidebar": "展開側邊欄",
     "Collapse sidebar": "收合側邊欄",
     "AI operations live": "AI 營運即時監控",
+    Language: "語言",
+    "Select language": "選擇語言",
+    "Select workspace": "選擇工作區",
     Workspace: "工作區",
     "Run AI Report": "產生 AI 報告",
     "Dashboard Overview": "儀表板總覽",
@@ -282,6 +289,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "Expand sidebar": "展开侧边栏",
     "Collapse sidebar": "收起侧边栏",
     "AI operations live": "AI 运营实时监控",
+    Language: "语言",
+    "Select language": "选择语言",
+    "Select workspace": "选择工作区",
     Workspace: "工作区",
     "Run AI Report": "生成 AI 报告",
     "Dashboard Overview": "仪表盘总览",
@@ -610,6 +620,7 @@ export default function Home() {
             language={language}
             setLanguage={setLanguage}
             workspace={workspace}
+            setWorkspace={setWorkspace}
             onRunReport={runReport}
             t={t}
           />
@@ -778,6 +789,7 @@ function Header({
   language,
   setLanguage,
   workspace,
+  setWorkspace,
   onRunReport,
   t
 }: {
@@ -785,6 +797,7 @@ function Header({
   language: Lang;
   setLanguage: (language: Lang) => void;
   workspace: string;
+  setWorkspace: (workspace: string) => void;
   onRunReport: () => void;
   t: Translate;
 }) {
@@ -799,28 +812,47 @@ function Header({
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">{t(pageCopy[activeNav].description)}</p>
       </div>
 
-      <div className="glass-panel flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center">
-        <div className="grid grid-cols-3 rounded-xl border border-white/10 bg-white/5 p-1">
-          {languageOptions.map((option) => (
-            <button
-              className={clsx(
-                "rounded-lg px-3 py-2 text-xs font-semibold transition",
-                language === option.value ? "bg-cyan-300 text-slate-950" : "text-slate-300 hover:bg-white/10"
-              )}
-              key={option.value}
-              onClick={() => setLanguage(option.value)}
-              type="button"
+      <div className="glass-panel flex flex-col gap-2 rounded-2xl p-3 sm:flex-row sm:items-center">
+        <label className="flex h-14 min-w-36 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3">
+          <Globe2 className="h-4 w-4 shrink-0 text-cyan-100" />
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-slate-500">{t("Language")}</p>
+            <select
+              aria-label={t("Select language")}
+              className="w-full bg-transparent text-sm font-semibold text-white outline-none"
+              onChange={(event) => setLanguage(event.target.value as Lang)}
+              value={language}
             >
-              {option.label}
-            </button>
-          ))}
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-          <p className="text-xs text-slate-400">{t("Workspace")}</p>
-          <p className="text-sm font-semibold text-white">{workspace}</p>
-        </div>
+              {languageOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </label>
+
+        <label className="flex h-14 min-w-56 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3">
+          <Building2 className="h-4 w-4 shrink-0 text-violet-100" />
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-slate-500">{t("Workspace")}</p>
+            <select
+              aria-label={t("Select workspace")}
+              className="w-full truncate bg-transparent text-sm font-semibold text-white outline-none"
+              onChange={(event) => setWorkspace(event.target.value)}
+              value={workspace}
+            >
+              {workspaceOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        </label>
+
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110"
+          className="inline-flex h-14 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-5 text-sm font-semibold text-slate-950 transition hover:brightness-110"
           onClick={onRunReport}
           type="button"
         >
