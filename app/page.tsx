@@ -376,6 +376,16 @@ function Sidebar({
         collapsed ? "w-[104px]" : "w-72"
       )}
     >
+      <button
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className="absolute -right-4 top-6 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-cyan-300/25 bg-slate-950/95 text-cyan-100 shadow-glow transition hover:scale-105 hover:bg-cyan-300/10"
+        onClick={() => setCollapsed(!collapsed)}
+        title={collapsed ? "Expand" : "Collapse"}
+        type="button"
+      >
+        {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+      </button>
+
       <div className="flex h-full flex-col">
         <div className={clsx("flex items-center gap-3 px-2 py-3", collapsed && "justify-center px-0")}>
           <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10">
@@ -387,20 +397,7 @@ function Sidebar({
           </div>
         </div>
 
-        <button
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={clsx(
-            "mt-3 flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white",
-            collapsed ? "w-full" : "px-3"
-          )}
-          onClick={() => setCollapsed(!collapsed)}
-          type="button"
-        >
-          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-          <span className={clsx(collapsed && "sr-only")}>{collapsed ? "Expand" : "Collapse"}</span>
-        </button>
-
-        <nav className="mt-8 space-y-1">
+        <nav className="mt-10 space-y-1">
           {navigation.map((item) => (
             <button
               aria-label={item.label}
