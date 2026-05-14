@@ -369,10 +369,14 @@ function Sidebar({
   setActiveNav: (nav: NavKey) => void;
   setCollapsed: (collapsed: boolean) => void;
 }) {
+  const labelClass = collapsed
+    ? "max-w-0 overflow-hidden opacity-0 delay-0"
+    : "max-w-44 opacity-100 delay-200";
+
   return (
     <aside
       className={clsx(
-        "glass-panel sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 rounded-2xl p-4 transition-all duration-300 lg:block",
+        "glass-panel sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 overflow-visible rounded-2xl p-4 transition-all duration-300 lg:block",
         collapsed ? "w-[104px]" : "w-72"
       )}
     >
@@ -391,7 +395,7 @@ function Sidebar({
           <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10">
             <Sparkles className="h-5 w-5 text-cyan-200" />
           </div>
-          <div className={clsx("min-w-0 transition-opacity", collapsed && "sr-only")}>
+          <div className={clsx("min-w-0 whitespace-nowrap transition-all duration-150", labelClass)}>
             <p className="text-sm font-semibold text-white">NeuralDesk AI</p>
             <p className="text-xs text-slate-400">SaaS Control Center</p>
           </div>
@@ -414,7 +418,7 @@ function Sidebar({
               type="button"
             >
               <item.icon className="h-4 w-4" />
-              <span className={clsx(collapsed && "sr-only")}>{item.label}</span>
+              <span className={clsx("whitespace-nowrap transition-all duration-150", labelClass)}>{item.label}</span>
             </button>
           ))}
         </nav>
@@ -427,9 +431,14 @@ function Sidebar({
         >
           <div className={clsx("flex items-center gap-2 text-sm font-semibold text-violet-100", collapsed && "justify-center")}>
             <Rocket className="h-4 w-4" />
-            <span className={clsx(collapsed && "sr-only")}>Scale Plan</span>
+            <span className={clsx("whitespace-nowrap transition-all duration-150", labelClass)}>Scale Plan</span>
           </div>
-          <p className={clsx("mt-2 text-sm leading-6 text-slate-400", collapsed && "sr-only")}>
+          <p
+            className={clsx(
+              "mt-2 text-sm leading-6 text-slate-400 transition-all duration-150",
+              collapsed ? "max-h-0 overflow-hidden opacity-0 delay-0" : "max-h-24 opacity-100 delay-200"
+            )}
+          >
             82% of monthly AI compute used. Capacity forecast remains healthy.
           </p>
           <div className={clsx("h-2 rounded-full bg-slate-800", collapsed ? "mt-3" : "mt-4")}>
