@@ -37,6 +37,8 @@ import clsx from "clsx";
 
 type NavKey = "Dashboard" | "Analytics" | "AI Assistant" | "Projects" | "Settings";
 type Tone = "blue" | "violet" | "cyan" | "emerald";
+type Lang = "en" | "zh-Hant" | "zh-Hans";
+type Translate = (key: string, values?: Record<string, string>) => string;
 
 type Metric = {
   label: string;
@@ -48,9 +50,10 @@ type Metric = {
 
 type ActivityItem = {
   id: number;
-  title: string;
-  detail: string;
-  time: string;
+  titleKey: string;
+  detailKey: string;
+  timeKey: string;
+  values?: Record<string, string>;
   tone: "cyan" | "violet" | "emerald" | "amber";
 };
 
@@ -93,30 +96,30 @@ const initialMetrics: Metric[] = [
 const initialActivities: ActivityItem[] = [
   {
     id: 1,
-    title: "Model routing optimized",
-    detail: "Latency dropped by 18% across assistant tasks.",
-    time: "2 min ago",
+    titleKey: "Model routing optimized",
+    detailKey: "Latency dropped by 18% across assistant tasks.",
+    timeKey: "2 min ago",
     tone: "cyan"
   },
   {
     id: 2,
-    title: "Enterprise workspace upgraded",
-    detail: "Nova Labs moved to the Scale plan.",
-    time: "18 min ago",
+    titleKey: "Enterprise workspace upgraded",
+    detailKey: "Nova Labs moved to the Scale plan.",
+    timeKey: "18 min ago",
     tone: "emerald"
   },
   {
     id: 3,
-    title: "Automation queued",
-    detail: "42 invoices are ready for AI extraction.",
-    time: "41 min ago",
+    titleKey: "Automation queued",
+    detailKey: "42 invoices are ready for AI extraction.",
+    timeKey: "41 min ago",
     tone: "violet"
   },
   {
     id: 4,
-    title: "Usage threshold reached",
-    detail: "Request volume is above weekday baseline.",
-    time: "1 hr ago",
+    titleKey: "Usage threshold reached",
+    detailKey: "Request volume is above weekday baseline.",
+    timeKey: "1 hr ago",
     tone: "amber"
   }
 ];
@@ -139,6 +142,248 @@ const initialMessages: Message[] = [
   { id: 2, role: "User", body: "Create an action plan for the at-risk segment." },
   { id: 3, role: "AI", body: "I prepared 3 automation tasks: onboarding email, usage alert, and customer success follow-up." }
 ];
+
+const languageOptions: Array<{ value: Lang; label: string }> = [
+  { value: "zh-Hant", label: "繁中" },
+  { value: "zh-Hans", label: "简中" },
+  { value: "en", label: "EN" }
+];
+
+const translations: Record<Lang, Record<string, string>> = {
+  en: {},
+  "zh-Hant": {
+    Dashboard: "儀表板",
+    Analytics: "分析",
+    "AI Assistant": "AI 助手",
+    Projects: "專案",
+    Settings: "設定",
+    "SaaS Control Center": "SaaS 控制中心",
+    "Control Center": "控制中心",
+    "Scale Plan": "Scale 方案",
+    "82% of monthly AI compute used. Capacity forecast remains healthy.": "本月 AI 運算量已使用 82%。容量預測仍保持健康。",
+    Expand: "展開",
+    Collapse: "收合",
+    "Expand sidebar": "展開側邊欄",
+    "Collapse sidebar": "收合側邊欄",
+    "AI operations live": "AI 營運即時監控",
+    Workspace: "工作區",
+    "Run AI Report": "產生 AI 報告",
+    "Dashboard Overview": "儀表板總覽",
+    "Monitor product growth, AI request volume, automation health, and active SaaS projects from one control center.": "從同一個控制中心監控產品成長、AI 請求量、自動化健康度和進行中的 SaaS 專案。",
+    "Explore usage, revenue, request quality, and operational performance across the AI platform.": "探索 AI 平台的使用量、營收、請求品質與營運表現。",
+    "Chat with the assistant, run automation workflows, and track task execution status.": "與 AI 助手對話、執行自動化流程，並追蹤任務執行狀態。",
+    "Create, update, filter, and manage AI product workstreams from the project pipeline.": "在專案管線中建立、更新、篩選並管理 AI 產品工作流。",
+    "Manage workspace preferences, notifications, AI model routing, and security options.": "管理工作區偏好、通知、AI 模型路由與安全選項。",
+    "Total Users": "總用戶",
+    Revenue: "營收",
+    "AI Requests": "AI 請求",
+    "Conversion Rate": "轉換率",
+    "vs last month": "較上月",
+    "Analytics Section": "分析區",
+    "AI request growth": "AI 請求成長",
+    "Export CSV": "匯出 CSV",
+    "Automation runs": "自動化執行",
+    "Active agents": "啟用代理",
+    "Saved hours": "節省時數",
+    "AI Assistant Panel": "AI 助手面板",
+    "Task command queue": "任務指令佇列",
+    Run: "執行",
+    User: "使用者",
+    AI: "AI",
+    "Ask about churn, revenue, or automation...": "詢問流失、營收或自動化...",
+    "Collect data": "收集資料",
+    "Sync CRM, billing, and app events.": "同步 CRM、帳務與應用事件。",
+    "Generate insights": "產生洞察",
+    "Cluster users and detect churn risk.": "分群使用者並偵測流失風險。",
+    "Send actions": "發送行動",
+    "Create tasks for success managers.": "為客戶成功經理建立任務。",
+    Done: "完成",
+    Running: "執行中",
+    Queued: "排隊中",
+    "AI product pipeline": "AI 產品管線",
+    "Search projects": "搜尋專案",
+    "New Project": "新增專案",
+    "Project name": "專案名稱",
+    Status: "狀態",
+    Progress: "進度",
+    "Last updated": "最後更新",
+    Actions: "操作",
+    Add: "新增",
+    Automation: "自動化",
+    "Sales AI": "銷售 AI",
+    "Customer Ops": "客戶營運",
+    Live: "上線",
+    Training: "訓練中",
+    Review: "審核",
+    Paused: "暫停",
+    Today: "今天",
+    Yesterday: "昨天",
+    "Just now": "剛剛",
+    "May 10": "5 月 10 日",
+    "May 8": "5 月 8 日",
+    "Recent Activity": "最近活動",
+    "Operations feed": "營運動態",
+    Clear: "清除",
+    "No recent activity.": "目前沒有最近活動。",
+    "Workspace controls": "工作區控制",
+    "Workspace name": "工作區名稱",
+    "AI model route": "AI 模型路由",
+    "Email alerts": "Email 通知",
+    "Auto reports": "自動報告",
+    "Save Settings": "儲存設定",
+    "GPT-5 Automation": "GPT-5 自動化",
+    "Fast Support Copilot": "快速客服 Copilot",
+    "Analytics Reasoner": "分析推理模型",
+    "Model routing optimized": "模型路由已最佳化",
+    "Latency dropped by 18% across assistant tasks.": "助手任務延遲下降 18%。",
+    "Enterprise workspace upgraded": "企業工作區已升級",
+    "Nova Labs moved to the Scale plan.": "Nova Labs 已升級至 Scale 方案。",
+    "Automation queued": "自動化已排程",
+    "42 invoices are ready for AI extraction.": "42 張發票已準備進行 AI 擷取。",
+    "Usage threshold reached": "使用量已達門檻",
+    "Request volume is above weekday baseline.": "請求量高於工作日基準。",
+    "2 min ago": "2 分鐘前",
+    "18 min ago": "18 分鐘前",
+    "41 min ago": "41 分鐘前",
+    "1 hr ago": "1 小時前",
+    "AI report generated": "AI 報告已產生",
+    "Executive summary, churn signals, and revenue notes are ready.": "主管摘要、流失訊號與營收註記已完成。",
+    "Automation workflow started": "自動化流程已啟動",
+    "Customer success tasks are being generated from assistant insights.": "正在根據助手洞察產生客戶成功任務。",
+    "Automation workflow completed": "自動化流程已完成",
+    "Follow-up tasks were created for the at-risk customer segment.": "已為高風險客群建立跟進任務。",
+    "Analytics exported": "分析資料已匯出",
+    "{range} performance data was downloaded as CSV.": "{range} 表現資料已下載為 CSV。",
+    "Assistant response created": "助手回覆已建立",
+    "A new AI recommendation was added to the workspace thread.": "新的 AI 建議已加入工作區對話串。",
+    "Project created": "專案已建立",
+    "{name} was added to the AI product pipeline.": "{name} 已加入 AI 產品管線。",
+    "Project removed": "專案已移除",
+    "{name} was removed from the dashboard.": "{name} 已從儀表板移除。",
+    "Settings saved": "設定已儲存",
+    "{name} preferences were updated.": "{name} 的偏好設定已更新。",
+    "Daily revenue is trending up 12.8%. Churn risk is concentrated in trial accounts.": "每日營收上升 12.8%。流失風險主要集中在試用帳戶。",
+    "Create an action plan for the at-risk segment.": "為高風險客群建立行動計畫。",
+    "I prepared 3 automation tasks: onboarding email, usage alert, and customer success follow-up.": "我已準備 3 個自動化任務：入門 Email、使用量提醒與客戶成功跟進。",
+    "I found 3 priority segments, queued a follow-up workflow, and updated the project risk score.": "我找到 3 個優先客群，已排入跟進流程，並更新專案風險分數。"
+  },
+  "zh-Hans": {
+    Dashboard: "仪表盘",
+    Analytics: "分析",
+    "AI Assistant": "AI 助手",
+    Projects: "项目",
+    Settings: "设置",
+    "SaaS Control Center": "SaaS 控制中心",
+    "Control Center": "控制中心",
+    "Scale Plan": "Scale 方案",
+    "82% of monthly AI compute used. Capacity forecast remains healthy.": "本月 AI 算力已使用 82%。容量预测仍保持健康。",
+    Expand: "展开",
+    Collapse: "收起",
+    "Expand sidebar": "展开侧边栏",
+    "Collapse sidebar": "收起侧边栏",
+    "AI operations live": "AI 运营实时监控",
+    Workspace: "工作区",
+    "Run AI Report": "生成 AI 报告",
+    "Dashboard Overview": "仪表盘总览",
+    "Monitor product growth, AI request volume, automation health, and active SaaS projects from one control center.": "从同一个控制中心监控产品增长、AI 请求量、自动化健康度和进行中的 SaaS 项目。",
+    "Explore usage, revenue, request quality, and operational performance across the AI platform.": "探索 AI 平台的使用量、收入、请求质量与运营表现。",
+    "Chat with the assistant, run automation workflows, and track task execution status.": "与 AI 助手对话、运行自动化流程，并跟踪任务执行状态。",
+    "Create, update, filter, and manage AI product workstreams from the project pipeline.": "在项目管线中创建、更新、筛选并管理 AI 产品工作流。",
+    "Manage workspace preferences, notifications, AI model routing, and security options.": "管理工作区偏好、通知、AI 模型路由与安全选项。",
+    "Total Users": "总用户",
+    Revenue: "收入",
+    "AI Requests": "AI 请求",
+    "Conversion Rate": "转化率",
+    "vs last month": "较上月",
+    "Analytics Section": "分析区",
+    "AI request growth": "AI 请求增长",
+    "Export CSV": "导出 CSV",
+    "Automation runs": "自动化运行",
+    "Active agents": "启用代理",
+    "Saved hours": "节省时数",
+    "AI Assistant Panel": "AI 助手面板",
+    "Task command queue": "任务指令队列",
+    Run: "运行",
+    User: "用户",
+    AI: "AI",
+    "Ask about churn, revenue, or automation...": "询问流失、收入或自动化...",
+    "Collect data": "收集数据",
+    "Sync CRM, billing, and app events.": "同步 CRM、账务与应用事件。",
+    "Generate insights": "生成洞察",
+    "Cluster users and detect churn risk.": "对用户分群并检测流失风险。",
+    "Send actions": "发送行动",
+    "Create tasks for success managers.": "为客户成功经理创建任务。",
+    Done: "完成",
+    Running: "运行中",
+    Queued: "排队中",
+    "AI product pipeline": "AI 产品管线",
+    "Search projects": "搜索项目",
+    "New Project": "新增项目",
+    "Project name": "项目名称",
+    Status: "状态",
+    Progress: "进度",
+    "Last updated": "最后更新",
+    Actions: "操作",
+    Add: "新增",
+    Automation: "自动化",
+    "Sales AI": "销售 AI",
+    "Customer Ops": "客户运营",
+    Live: "上线",
+    Training: "训练中",
+    Review: "审核",
+    Paused: "暂停",
+    Today: "今天",
+    Yesterday: "昨天",
+    "Just now": "刚刚",
+    "May 10": "5 月 10 日",
+    "May 8": "5 月 8 日",
+    "Recent Activity": "最近活动",
+    "Operations feed": "运营动态",
+    Clear: "清除",
+    "No recent activity.": "暂无最近活动。",
+    "Workspace controls": "工作区控制",
+    "Workspace name": "工作区名称",
+    "AI model route": "AI 模型路由",
+    "Email alerts": "Email 通知",
+    "Auto reports": "自动报告",
+    "Save Settings": "保存设置",
+    "GPT-5 Automation": "GPT-5 自动化",
+    "Fast Support Copilot": "快速客服 Copilot",
+    "Analytics Reasoner": "分析推理模型",
+    "Model routing optimized": "模型路由已优化",
+    "Latency dropped by 18% across assistant tasks.": "助手任务延迟下降 18%。",
+    "Enterprise workspace upgraded": "企业工作区已升级",
+    "Nova Labs moved to the Scale plan.": "Nova Labs 已升级至 Scale 方案。",
+    "Automation queued": "自动化已排程",
+    "42 invoices are ready for AI extraction.": "42 张发票已准备进行 AI 提取。",
+    "Usage threshold reached": "使用量已达阈值",
+    "Request volume is above weekday baseline.": "请求量高于工作日基准。",
+    "2 min ago": "2 分钟前",
+    "18 min ago": "18 分钟前",
+    "41 min ago": "41 分钟前",
+    "1 hr ago": "1 小时前",
+    "AI report generated": "AI 报告已生成",
+    "Executive summary, churn signals, and revenue notes are ready.": "管理摘要、流失信号与收入备注已完成。",
+    "Automation workflow started": "自动化流程已启动",
+    "Customer success tasks are being generated from assistant insights.": "正在根据助手洞察生成客户成功任务。",
+    "Automation workflow completed": "自动化流程已完成",
+    "Follow-up tasks were created for the at-risk customer segment.": "已为高风险客群创建跟进任务。",
+    "Analytics exported": "分析数据已导出",
+    "{range} performance data was downloaded as CSV.": "{range} 表现数据已下载为 CSV。",
+    "Assistant response created": "助手回复已创建",
+    "A new AI recommendation was added to the workspace thread.": "新的 AI 建议已加入工作区对话串。",
+    "Project created": "项目已创建",
+    "{name} was added to the AI product pipeline.": "{name} 已加入 AI 产品管线。",
+    "Project removed": "项目已移除",
+    "{name} was removed from the dashboard.": "{name} 已从仪表盘移除。",
+    "Settings saved": "设置已保存",
+    "{name} preferences were updated.": "{name} 的偏好设置已更新。",
+    "Daily revenue is trending up 12.8%. Churn risk is concentrated in trial accounts.": "每日收入上升 12.8%。流失风险主要集中在试用账户。",
+    "Create an action plan for the at-risk segment.": "为高风险客群创建行动计划。",
+    "I prepared 3 automation tasks: onboarding email, usage alert, and customer success follow-up.": "我已准备 3 个自动化任务：入门 Email、使用量提醒与客户成功跟进。",
+    "I found 3 priority segments, queued a follow-up workflow, and updated the project risk score.": "我找到 3 个优先客群，已排入跟进流程，并更新项目风险分数。"
+  }
+};
 
 const chartSets = {
   "7D": [116, 90, 97, 58, 68, 34, 46, 18, 28],
@@ -197,6 +442,7 @@ function pointsFrom(values: number[]) {
 
 export default function Home() {
   const [activeNav, setActiveNav] = useState<NavKey>("Dashboard");
+  const [language, setLanguage] = useState<Lang>("en");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [metrics, setMetrics] = useState(initialMetrics);
@@ -206,9 +452,13 @@ export default function Home() {
   const [messages, setMessages] = useState(initialMessages);
   const [workspace, setWorkspace] = useState("Acme Growth Cloud");
   const [range, setRange] = useState<keyof typeof chartSets>("7D");
+  const t: Translate = (key, values) => {
+    const template = translations[language][key] ?? key;
+    return Object.entries(values ?? {}).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), template);
+  };
 
-  const addActivity = (item: Omit<ActivityItem, "id" | "time">) => {
-    setActivities((current) => [{ ...item, id: Date.now(), time: "Just now" }, ...current].slice(0, 7));
+  const addActivity = (item: Omit<ActivityItem, "id" | "timeKey">) => {
+    setActivities((current) => [{ ...item, id: Date.now(), timeKey: "Just now" }, ...current].slice(0, 7));
   };
 
   const runReport = () => {
@@ -218,8 +468,8 @@ export default function Home() {
       )
     );
     addActivity({
-      title: "AI report generated",
-      detail: "Executive summary, churn signals, and revenue notes are ready.",
+      titleKey: "AI report generated",
+      detailKey: "Executive summary, churn signals, and revenue notes are ready.",
       tone: "cyan"
     });
   };
@@ -227,15 +477,15 @@ export default function Home() {
   const runAutomation = () => {
     setWorkflow((current) => current.map((step) => ({ ...step, state: step.label === "Send actions" ? "Running" : "Done" })));
     addActivity({
-      title: "Automation workflow started",
-      detail: "Customer success tasks are being generated from assistant insights.",
+      titleKey: "Automation workflow started",
+      detailKey: "Customer success tasks are being generated from assistant insights.",
       tone: "violet"
     });
     window.setTimeout(() => {
       setWorkflow((current) => current.map((step) => ({ ...step, state: "Done" })));
       addActivity({
-        title: "Automation workflow completed",
-        detail: "Follow-up tasks were created for the at-risk customer segment.",
+        titleKey: "Automation workflow completed",
+        detailKey: "Follow-up tasks were created for the at-risk customer segment.",
         tone: "emerald"
       });
     }, 1400);
@@ -251,8 +501,9 @@ export default function Home() {
     anchor.click();
     URL.revokeObjectURL(url);
     addActivity({
-      title: "Analytics exported",
-      detail: `${range} performance data was downloaded as CSV.`,
+      titleKey: "Analytics exported",
+      detailKey: "{range} performance data was downloaded as CSV.",
+      values: { range },
       tone: "cyan"
     });
   };
@@ -261,14 +512,14 @@ export default function Home() {
     if (activeNav === "Analytics") {
       return (
         <>
-          <AnalyticsPanel range={range} setRange={setRange} onExport={exportAnalytics} />
+          <AnalyticsPanel range={range} setRange={setRange} onExport={exportAnalytics} t={t} />
           <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {metrics.map((metric) => (
-              <MetricCard key={metric.label} metric={metric} />
+              <MetricCard key={metric.label} metric={metric} t={t} />
             ))}
           </div>
           <div className="mt-5">
-            <ActivityPanel activities={activities} onClear={() => setActivities([])} />
+            <ActivityPanel activities={activities} onClear={() => setActivities([])} t={t} />
           </div>
         </>
       );
@@ -283,8 +534,9 @@ export default function Home() {
             workflow={workflow}
             onRunAutomation={runAutomation}
             addActivity={addActivity}
+            t={t}
           />
-          <ActivityPanel activities={activities} onClear={() => setActivities([])} />
+          <ActivityPanel activities={activities} onClear={() => setActivities([])} t={t} />
         </div>
       );
     }
@@ -292,7 +544,7 @@ export default function Home() {
     if (activeNav === "Projects") {
       return (
         <div className="mt-6">
-          <ProjectsTable projects={projects} setProjects={setProjects} addActivity={addActivity} />
+          <ProjectsTable projects={projects} setProjects={setProjects} addActivity={addActivity} t={t} />
         </div>
       );
     }
@@ -300,7 +552,7 @@ export default function Home() {
     if (activeNav === "Settings") {
       return (
         <div className="mt-6">
-          <SettingsPanel workspace={workspace} setWorkspace={setWorkspace} addActivity={addActivity} />
+          <SettingsPanel workspace={workspace} setWorkspace={setWorkspace} addActivity={addActivity} t={t} />
         </div>
       );
     }
@@ -309,25 +561,26 @@ export default function Home() {
       <>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {metrics.map((metric) => (
-            <MetricCard key={metric.label} metric={metric} />
+            <MetricCard key={metric.label} metric={metric} t={t} />
           ))}
         </div>
 
         <div className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_0.9fr]">
-          <AnalyticsPanel range={range} setRange={setRange} onExport={exportAnalytics} compact />
+          <AnalyticsPanel range={range} setRange={setRange} onExport={exportAnalytics} compact t={t} />
           <AssistantPanel
             messages={messages}
             setMessages={setMessages}
             workflow={workflow}
             onRunAutomation={runAutomation}
             addActivity={addActivity}
+            t={t}
             compact
           />
         </div>
 
         <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.78fr)]">
-          <ProjectsTable projects={projects} setProjects={setProjects} addActivity={addActivity} compact />
-          <ActivityPanel activities={activities} onClear={() => setActivities([])} />
+          <ProjectsTable projects={projects} setProjects={setProjects} addActivity={addActivity} compact t={t} />
+          <ActivityPanel activities={activities} onClear={() => setActivities([])} t={t} />
         </div>
       </>
     );
@@ -341,6 +594,7 @@ export default function Home() {
           collapsed={sidebarCollapsed}
           setActiveNav={setActiveNav}
           setCollapsed={setSidebarCollapsed}
+          t={t}
         />
 
         <section className="min-w-0 flex-1 pb-8 lg:pl-0">
@@ -349,8 +603,16 @@ export default function Home() {
             isOpen={mobileNavOpen}
             setActiveNav={setActiveNav}
             setIsOpen={setMobileNavOpen}
+            t={t}
           />
-          <Header activeNav={activeNav} workspace={workspace} onRunReport={runReport} />
+          <Header
+            activeNav={activeNav}
+            language={language}
+            setLanguage={setLanguage}
+            workspace={workspace}
+            onRunReport={runReport}
+            t={t}
+          />
           {renderContent()}
         </section>
       </div>
@@ -362,12 +624,14 @@ function Sidebar({
   activeNav,
   collapsed,
   setActiveNav,
-  setCollapsed
+  setCollapsed,
+  t
 }: {
   activeNav: NavKey;
   collapsed: boolean;
   setActiveNav: (nav: NavKey) => void;
   setCollapsed: (collapsed: boolean) => void;
+  t: Translate;
 }) {
   const labelClass = collapsed
     ? "max-w-0 overflow-hidden opacity-0 delay-0"
@@ -381,10 +645,10 @@ function Sidebar({
       )}
     >
       <button
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={collapsed ? t("Expand sidebar") : t("Collapse sidebar")}
         className="absolute -right-4 top-6 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-cyan-300/25 bg-slate-950/95 text-cyan-100 shadow-glow transition hover:scale-105 hover:bg-cyan-300/10"
         onClick={() => setCollapsed(!collapsed)}
-        title={collapsed ? "Expand" : "Collapse"}
+        title={collapsed ? t("Expand") : t("Collapse")}
         type="button"
       >
         {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
@@ -397,15 +661,15 @@ function Sidebar({
           </div>
           <div className={clsx("min-w-0 whitespace-nowrap transition-all duration-150", labelClass)}>
             <p className="text-sm font-semibold text-white">NeuralDesk AI</p>
-            <p className="text-xs text-slate-400">SaaS Control Center</p>
+            <p className="text-xs text-slate-400">{t("SaaS Control Center")}</p>
           </div>
         </div>
 
         <nav className="mt-10 space-y-1">
           {navigation.map((item) => (
             <button
-              aria-label={item.label}
-              title={collapsed ? item.label : undefined}
+              aria-label={t(item.label)}
+              title={collapsed ? t(item.label) : undefined}
               className={clsx(
                 "flex w-full items-center rounded-xl py-3 text-left text-sm font-medium transition",
                 collapsed ? "justify-center px-0" : "gap-3 px-3",
@@ -418,7 +682,7 @@ function Sidebar({
               type="button"
             >
               <item.icon className="h-4 w-4" />
-              <span className={clsx("whitespace-nowrap transition-all duration-150", labelClass)}>{item.label}</span>
+              <span className={clsx("whitespace-nowrap transition-all duration-150", labelClass)}>{t(item.label)}</span>
             </button>
           ))}
         </nav>
@@ -431,7 +695,7 @@ function Sidebar({
         >
           <div className={clsx("flex items-center gap-2 text-sm font-semibold text-violet-100", collapsed && "justify-center")}>
             <Rocket className="h-4 w-4" />
-            <span className={clsx("whitespace-nowrap transition-all duration-150", labelClass)}>Scale Plan</span>
+            <span className={clsx("whitespace-nowrap transition-all duration-150", labelClass)}>{t("Scale Plan")}</span>
           </div>
           <p
             className={clsx(
@@ -439,7 +703,7 @@ function Sidebar({
               collapsed ? "max-h-0 overflow-hidden opacity-0 delay-0" : "max-h-24 opacity-100 delay-200"
             )}
           >
-            82% of monthly AI compute used. Capacity forecast remains healthy.
+            {t("82% of monthly AI compute used. Capacity forecast remains healthy.")}
           </p>
           <div className={clsx("h-2 rounded-full bg-slate-800", collapsed ? "mt-3" : "mt-4")}>
             <div className="h-2 w-[82%] rounded-full bg-gradient-to-r from-cyan-300 to-violet-400" />
@@ -454,12 +718,14 @@ function MobileHeader({
   activeNav,
   isOpen,
   setActiveNav,
-  setIsOpen
+  setIsOpen,
+  t
 }: {
   activeNav: NavKey;
   isOpen: boolean;
   setActiveNav: (nav: NavKey) => void;
   setIsOpen: (isOpen: boolean) => void;
+  t: Translate;
 }) {
   return (
     <div className="glass-panel rounded-2xl p-3 lg:hidden">
@@ -470,11 +736,11 @@ function MobileHeader({
           </div>
           <div>
             <p className="text-sm font-semibold text-white">NeuralDesk AI</p>
-            <p className="text-xs text-slate-400">Control Center</p>
+            <p className="text-xs text-slate-400">{t("Control Center")}</p>
           </div>
         </div>
         <button
-          aria-label="Toggle navigation"
+          aria-label={t("Toggle navigation")}
           className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200"
           onClick={() => setIsOpen(!isOpen)}
           type="button"
@@ -498,7 +764,7 @@ function MobileHeader({
               type="button"
             >
               <item.icon className="h-3.5 w-3.5" />
-              {item.label}
+              {t(item.label)}
             </button>
           ))}
         </nav>
@@ -509,27 +775,48 @@ function MobileHeader({
 
 function Header({
   activeNav,
+  language,
+  setLanguage,
   workspace,
-  onRunReport
+  onRunReport,
+  t
 }: {
   activeNav: NavKey;
+  language: Lang;
+  setLanguage: (language: Lang) => void;
   workspace: string;
   onRunReport: () => void;
+  t: Translate;
 }) {
   return (
     <header className="mt-5 flex flex-col gap-4 lg:mt-0 xl:flex-row xl:items-end xl:justify-between">
       <div>
         <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/8 px-3 py-1 text-xs font-medium text-cyan-100">
           <CircleDot className="h-3.5 w-3.5" />
-          AI operations live
+          {t("AI operations live")}
         </div>
-        <h1 className="mt-4 max-w-3xl text-3xl font-semibold text-white sm:text-4xl">{pageCopy[activeNav].title}</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">{pageCopy[activeNav].description}</p>
+        <h1 className="mt-4 max-w-3xl text-3xl font-semibold text-white sm:text-4xl">{t(pageCopy[activeNav].title)}</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">{t(pageCopy[activeNav].description)}</p>
       </div>
 
       <div className="glass-panel flex flex-col gap-3 rounded-2xl p-3 sm:flex-row sm:items-center">
+        <div className="grid grid-cols-3 rounded-xl border border-white/10 bg-white/5 p-1">
+          {languageOptions.map((option) => (
+            <button
+              className={clsx(
+                "rounded-lg px-3 py-2 text-xs font-semibold transition",
+                language === option.value ? "bg-cyan-300 text-slate-950" : "text-slate-300 hover:bg-white/10"
+              )}
+              key={option.value}
+              onClick={() => setLanguage(option.value)}
+              type="button"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
         <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3">
-          <p className="text-xs text-slate-400">Workspace</p>
+          <p className="text-xs text-slate-400">{t("Workspace")}</p>
           <p className="text-sm font-semibold text-white">{workspace}</p>
         </div>
         <button
@@ -538,19 +825,19 @@ function Header({
           type="button"
         >
           <Sparkles className="h-4 w-4" />
-          Run AI Report
+          {t("Run AI Report")}
         </button>
       </div>
     </header>
   );
 }
 
-function MetricCard({ metric }: { metric: Metric }) {
+function MetricCard({ metric, t }: { metric: Metric; t: Translate }) {
   return (
     <article className="glass-panel rounded-2xl p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm text-slate-400">{metric.label}</p>
+          <p className="text-sm text-slate-400">{t(metric.label)}</p>
           <p className="mt-3 text-2xl font-semibold text-white">{metric.value}</p>
         </div>
         <div className={clsx("flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br", toneMap[metric.tone])}>
@@ -561,7 +848,7 @@ function MetricCard({ metric }: { metric: Metric }) {
         <span className="rounded-full bg-emerald-300/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">
           {metric.change}
         </span>
-        <span className="text-xs text-slate-500">vs last month</span>
+        <span className="text-xs text-slate-500">{t("vs last month")}</span>
       </div>
     </article>
   );
@@ -571,11 +858,13 @@ function AnalyticsPanel({
   range,
   setRange,
   onExport,
+  t,
   compact = false
 }: {
   range: keyof typeof chartSets;
   setRange: (range: keyof typeof chartSets) => void;
   onExport: () => void;
+  t: Translate;
   compact?: boolean;
 }) {
   const chartPoints = pointsFrom(chartSets[range]);
@@ -585,8 +874,8 @@ function AnalyticsPanel({
     <section className="glass-panel rounded-2xl p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-cyan-100">Analytics Section</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">AI request growth</h2>
+          <p className="text-sm font-medium text-cyan-100">{t("Analytics Section")}</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{t("AI request growth")}</h2>
         </div>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(chartSets) as Array<keyof typeof chartSets>).map((item) => (
@@ -607,7 +896,7 @@ function AnalyticsPanel({
             onClick={onExport}
             type="button"
           >
-            Export CSV
+            {t("Export CSV")}
           </button>
         </div>
       </div>
@@ -657,7 +946,7 @@ function AnalyticsPanel({
           ["Saved hours", range === "90D" ? "11,760" : "3,920", "+37%"]
         ].map(([label, value, change]) => (
           <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4" key={label}>
-            <p className="text-sm text-slate-400">{label}</p>
+            <p className="text-sm text-slate-400">{t(label)}</p>
             <div className="mt-3 flex items-end justify-between gap-3">
               <p className="text-xl font-semibold text-white">{value}</p>
               <p className="text-xs font-semibold text-emerald-200">{change}</p>
@@ -675,13 +964,15 @@ function AssistantPanel({
   workflow,
   onRunAutomation,
   addActivity,
+  t,
   compact = false
 }: {
   messages: Message[];
   setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
   workflow: WorkflowStep[];
   onRunAutomation: () => void;
-  addActivity: (item: Omit<ActivityItem, "id" | "time">) => void;
+  addActivity: (item: Omit<ActivityItem, "id" | "timeKey">) => void;
+  t: Translate;
   compact?: boolean;
 }) {
   const [prompt, setPrompt] = useState("");
@@ -704,8 +995,8 @@ function AssistantPanel({
     ]);
     setPrompt("");
     addActivity({
-      title: "Assistant response created",
-      detail: "A new AI recommendation was added to the workspace thread.",
+      titleKey: "Assistant response created",
+      detailKey: "A new AI recommendation was added to the workspace thread.",
       tone: "violet"
     });
   };
@@ -714,8 +1005,8 @@ function AssistantPanel({
     <section className="glass-panel rounded-2xl p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-violet-100">AI Assistant Panel</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">Task command queue</h2>
+          <p className="text-sm font-medium text-violet-100">{t("AI Assistant Panel")}</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{t("Task command queue")}</h2>
         </div>
         <button
           className="inline-flex items-center gap-2 rounded-xl border border-violet-300/20 bg-violet-300/10 px-3 py-2 text-sm font-semibold text-violet-100 transition hover:bg-violet-300/15"
@@ -723,7 +1014,7 @@ function AssistantPanel({
           type="button"
         >
           <Play className="h-4 w-4" />
-          Run
+          {t("Run")}
         </button>
       </div>
 
@@ -738,8 +1029,8 @@ function AssistantPanel({
             )}
             key={message.id}
           >
-            <p className="mb-1 text-xs font-semibold text-slate-400">{message.role}</p>
-            {message.body}
+            <p className="mb-1 text-xs font-semibold text-slate-400">{t(message.role)}</p>
+            {t(message.body)}
           </div>
         ))}
       </div>
@@ -748,7 +1039,7 @@ function AssistantPanel({
         <input
           className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40"
           onChange={(event) => setPrompt(event.target.value)}
-          placeholder="Ask about churn, revenue, or automation..."
+          placeholder={t("Ask about churn, revenue, or automation...")}
           value={prompt}
         />
         <button
@@ -784,12 +1075,12 @@ function AssistantPanel({
             </div>
             <div className="min-w-0 pb-1">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold text-white">{step.label}</p>
+                <p className="text-sm font-semibold text-white">{t(step.label)}</p>
                 <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-slate-300">
-                  {step.state}
+                  {t(step.state)}
                 </span>
               </div>
-              <p className="mt-1 text-sm leading-6 text-slate-400">{step.description}</p>
+              <p className="mt-1 text-sm leading-6 text-slate-400">{t(step.description)}</p>
             </div>
           </div>
         ))}
@@ -802,11 +1093,13 @@ function ProjectsTable({
   projects,
   setProjects,
   addActivity,
+  t,
   compact = false
 }: {
   projects: Project[];
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
-  addActivity: (item: Omit<ActivityItem, "id" | "time">) => void;
+  addActivity: (item: Omit<ActivityItem, "id" | "timeKey">) => void;
+  t: Translate;
   compact?: boolean;
 }) {
   const [query, setQuery] = useState("");
@@ -841,8 +1134,9 @@ function ProjectsTable({
     setDraft({ name: "", category: "Automation", progress: 50 });
     setIsAdding(false);
     addActivity({
-      title: "Project created",
-      detail: `${project.name} was added to the AI product pipeline.`,
+      titleKey: "Project created",
+      detailKey: "{name} was added to the AI product pipeline.",
+      values: { name: project.name },
       tone: "emerald"
     });
   };
@@ -854,8 +1148,9 @@ function ProjectsTable({
   const deleteProject = (project: Project) => {
     setProjects((current) => current.filter((item) => item.id !== project.id));
     addActivity({
-      title: "Project removed",
-      detail: `${project.name} was removed from the dashboard.`,
+      titleKey: "Project removed",
+      detailKey: "{name} was removed from the dashboard.",
+      values: { name: project.name },
       tone: "amber"
     });
   };
@@ -864,8 +1159,8 @@ function ProjectsTable({
     <section className="glass-panel rounded-2xl p-5">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <p className="text-sm font-medium text-cyan-100">Projects</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">AI product pipeline</h2>
+          <p className="text-sm font-medium text-cyan-100">{t("Projects")}</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{t("AI product pipeline")}</h2>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
@@ -873,7 +1168,7 @@ function ProjectsTable({
             <input
               className="min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search projects"
+              placeholder={t("Search projects")}
               value={query}
             />
           </label>
@@ -883,7 +1178,7 @@ function ProjectsTable({
             type="button"
           >
             <Plus className="h-4 w-4" />
-            New Project
+            {t("New Project")}
           </button>
         </div>
       </div>
@@ -893,7 +1188,7 @@ function ProjectsTable({
           <input
             className="rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/40"
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-            placeholder="Project name"
+            placeholder={t("Project name")}
             value={draft.name}
           />
           <select
@@ -901,10 +1196,11 @@ function ProjectsTable({
             onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
             value={draft.category}
           >
-            <option>Automation</option>
-            <option>Analytics</option>
-            <option>Sales AI</option>
-            <option>Customer Ops</option>
+            {["Automation", "Analytics", "Sales AI", "Customer Ops"].map((category) => (
+              <option key={category} value={category}>
+                {t(category)}
+              </option>
+            ))}
           </select>
           <input
             className="rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
@@ -915,7 +1211,7 @@ function ProjectsTable({
             value={draft.progress}
           />
           <button className="rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950" type="submit">
-            Add
+            {t("Add")}
           </button>
         </form>
       ) : null}
@@ -924,11 +1220,11 @@ function ProjectsTable({
         <table className="w-full min-w-[760px] border-separate border-spacing-y-2 text-left">
           <thead>
             <tr className="text-xs uppercase text-slate-500">
-              <th className="px-3 py-2 font-medium">Project name</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-              <th className="px-3 py-2 font-medium">Progress</th>
-              <th className="px-3 py-2 font-medium">Last updated</th>
-              <th className="px-3 py-2 font-medium">Actions</th>
+              <th className="px-3 py-2 font-medium">{t("Project name")}</th>
+              <th className="px-3 py-2 font-medium">{t("Status")}</th>
+              <th className="px-3 py-2 font-medium">{t("Progress")}</th>
+              <th className="px-3 py-2 font-medium">{t("Last updated")}</th>
+              <th className="px-3 py-2 font-medium">{t("Actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -936,7 +1232,7 @@ function ProjectsTable({
               <tr className="bg-white/[0.035] text-sm" key={project.id}>
                 <td className="rounded-l-xl border-y border-l border-white/10 px-3 py-4">
                   <p className="font-semibold text-white">{project.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">{project.category}</p>
+                  <p className="mt-1 text-xs text-slate-500">{t(project.category)}</p>
                 </td>
                 <td className="border-y border-white/10 px-3 py-4">
                   <select
@@ -944,10 +1240,11 @@ function ProjectsTable({
                     onChange={(event) => updateProject(project.id, { status: event.target.value as Project["status"] })}
                     value={project.status}
                   >
-                    <option>Live</option>
-                    <option>Training</option>
-                    <option>Review</option>
-                    <option>Paused</option>
+                    {["Live", "Training", "Review", "Paused"].map((status) => (
+                      <option key={status} value={status}>
+                        {t(status)}
+                      </option>
+                    ))}
                   </select>
                 </td>
                 <td className="border-y border-white/10 px-3 py-4">
@@ -963,10 +1260,10 @@ function ProjectsTable({
                     <span className="w-9 text-xs text-slate-300">{project.progress}%</span>
                   </div>
                 </td>
-                <td className="border-y border-white/10 px-3 py-4 text-slate-400">{project.updated}</td>
+                <td className="border-y border-white/10 px-3 py-4 text-slate-400">{t(project.updated)}</td>
                 <td className="rounded-r-xl border-y border-r border-white/10 px-3 py-4">
                   <button
-                    aria-label={`Delete ${project.name}`}
+                    aria-label={`${t("Delete")} ${project.name}`}
                     className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:border-rose-300/30 hover:bg-rose-300/10 hover:text-rose-100"
                     onClick={() => deleteProject(project)}
                     type="button"
@@ -985,30 +1282,32 @@ function ProjectsTable({
 
 function ActivityPanel({
   activities,
-  onClear
+  onClear,
+  t
 }: {
   activities: ActivityItem[];
   onClear: () => void;
+  t: Translate;
 }) {
   return (
     <section className="glass-panel rounded-2xl p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-violet-100">Recent Activity</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">Operations feed</h2>
+          <p className="text-sm font-medium text-violet-100">{t("Recent Activity")}</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{t("Operations feed")}</h2>
         </div>
         <button
           className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10"
           onClick={onClear}
           type="button"
         >
-          Clear
+          {t("Clear")}
         </button>
       </div>
 
       <div className="mt-5 space-y-3">
         {activities.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">No recent activity.</div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">{t("No recent activity.")}</div>
         ) : (
           activities.map((item) => (
             <article className="rounded-xl border border-white/10 bg-white/[0.035] p-4" key={item.id}>
@@ -1016,10 +1315,10 @@ function ActivityPanel({
                 <span className={clsx("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", activityTone[item.tone])} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="min-w-0 text-sm font-semibold leading-6 text-white">{item.title}</p>
-                    <p className="shrink-0 whitespace-nowrap text-xs leading-6 text-slate-500">{item.time}</p>
+                    <p className="min-w-0 text-sm font-semibold leading-6 text-white">{t(item.titleKey)}</p>
+                    <p className="shrink-0 whitespace-nowrap text-xs leading-6 text-slate-500">{t(item.timeKey)}</p>
                   </div>
-                  <p className="mt-1 text-sm leading-6 text-slate-400">{item.detail}</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-400">{t(item.detailKey, item.values)}</p>
                 </div>
               </div>
             </article>
@@ -1033,11 +1332,13 @@ function ActivityPanel({
 function SettingsPanel({
   workspace,
   setWorkspace,
-  addActivity
+  addActivity,
+  t
 }: {
   workspace: string;
   setWorkspace: (workspace: string) => void;
-  addActivity: (item: Omit<ActivityItem, "id" | "time">) => void;
+  addActivity: (item: Omit<ActivityItem, "id" | "timeKey">) => void;
+  t: Translate;
 }) {
   const [draftWorkspace, setDraftWorkspace] = useState(workspace);
   const [emailAlerts, setEmailAlerts] = useState(true);
@@ -1048,8 +1349,9 @@ function SettingsPanel({
     event.preventDefault();
     setWorkspace(draftWorkspace.trim() || workspace);
     addActivity({
-      title: "Settings saved",
-      detail: `${draftWorkspace.trim() || workspace} preferences were updated.`,
+      titleKey: "Settings saved",
+      detailKey: "{name} preferences were updated.",
+      values: { name: draftWorkspace.trim() || workspace },
       tone: "emerald"
     });
   };
@@ -1058,8 +1360,8 @@ function SettingsPanel({
     <section className="glass-panel rounded-2xl p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-cyan-100">Settings</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">Workspace controls</h2>
+          <p className="text-sm font-medium text-cyan-100">{t("Settings")}</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{t("Workspace controls")}</h2>
         </div>
         <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-100">
           <ShieldCheck className="h-5 w-5" />
@@ -1068,7 +1370,7 @@ function SettingsPanel({
 
       <form className="mt-6 grid gap-4 lg:grid-cols-2" onSubmit={saveSettings}>
         <label className="space-y-2">
-          <span className="text-sm font-medium text-slate-300">Workspace name</span>
+          <span className="text-sm font-medium text-slate-300">{t("Workspace name")}</span>
           <input
             className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
             onChange={(event) => setDraftWorkspace(event.target.value)}
@@ -1077,20 +1379,22 @@ function SettingsPanel({
         </label>
 
         <label className="space-y-2">
-          <span className="text-sm font-medium text-slate-300">AI model route</span>
+          <span className="text-sm font-medium text-slate-300">{t("AI model route")}</span>
           <select
             className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
             onChange={(event) => setModel(event.target.value)}
             value={model}
           >
-            <option>GPT-5 Automation</option>
-            <option>Fast Support Copilot</option>
-            <option>Analytics Reasoner</option>
+            {["GPT-5 Automation", "Fast Support Copilot", "Analytics Reasoner"].map((route) => (
+              <option key={route} value={route}>
+                {t(route)}
+              </option>
+            ))}
           </select>
         </label>
 
-        <Toggle label="Email alerts" icon={Bell} checked={emailAlerts} onChange={setEmailAlerts} />
-        <Toggle label="Auto reports" icon={Activity} checked={autoReports} onChange={setAutoReports} />
+        <Toggle label={t("Email alerts")} icon={Bell} checked={emailAlerts} onChange={setEmailAlerts} />
+        <Toggle label={t("Auto reports")} icon={Activity} checked={autoReports} onChange={setAutoReports} />
 
         <div className="lg:col-span-2">
           <button
@@ -1098,7 +1402,7 @@ function SettingsPanel({
             type="submit"
           >
             <Save className="h-4 w-4" />
-            Save Settings
+            {t("Save Settings")}
           </button>
         </div>
       </form>
