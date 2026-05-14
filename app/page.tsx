@@ -18,6 +18,8 @@ import {
   LayoutDashboard,
   Menu,
   PanelLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
   Play,
   Plus,
   Rocket,
@@ -195,6 +197,7 @@ function pointsFrom(values: number[]) {
 
 export default function Home() {
   const [activeNav, setActiveNav] = useState<NavKey>("Dashboard");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [metrics, setMetrics] = useState(initialMetrics);
   const [activities, setActivities] = useState(initialActivities);
@@ -333,7 +336,12 @@ export default function Home() {
   return (
     <main className="dashboard-grid min-h-screen overflow-hidden px-4 py-4 text-slate-100 sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-[1440px] gap-5">
-        <Sidebar activeNav={activeNav} setActiveNav={setActiveNav} />
+        <Sidebar
+          activeNav={activeNav}
+          collapsed={sidebarCollapsed}
+          setActiveNav={setActiveNav}
+          setCollapsed={setSidebarCollapsed}
+        />
 
         <section className="min-w-0 flex-1 pb-8 lg:pl-0">
           <MobileHeader
@@ -352,29 +360,54 @@ export default function Home() {
 
 function Sidebar({
   activeNav,
-  setActiveNav
+  collapsed,
+  setActiveNav,
+  setCollapsed
 }: {
   activeNav: NavKey;
+  collapsed: boolean;
   setActiveNav: (nav: NavKey) => void;
+  setCollapsed: (collapsed: boolean) => void;
 }) {
   return (
-    <aside className="glass-panel sticky top-4 hidden h-[calc(100vh-2rem)] w-72 shrink-0 rounded-2xl p-4 lg:block">
+    <aside
+      className={clsx(
+        "glass-panel sticky top-4 hidden h-[calc(100vh-2rem)] shrink-0 rounded-2xl p-4 transition-all duration-300 lg:block",
+        collapsed ? "w-[104px]" : "w-72"
+      )}
+    >
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-3 px-2 py-3">
+        <div className={clsx("flex items-center gap-3 px-2 py-3", collapsed && "justify-center px-0")}>
           <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10">
             <Sparkles className="h-5 w-5 text-cyan-200" />
           </div>
-          <div>
+          <div className={clsx("min-w-0 transition-opacity", collapsed && "sr-only")}>
             <p className="text-sm font-semibold text-white">NeuralDesk AI</p>
             <p className="text-xs text-slate-400">SaaS Control Center</p>
           </div>
         </div>
 
+        <button
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className={clsx(
+            "mt-3 flex h-10 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white",
+            collapsed ? "w-full" : "px-3"
+          )}
+          onClick={() => setCollapsed(!collapsed)}
+          type="button"
+        >
+          {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          <span className={clsx(collapsed && "sr-only")}>{collapsed ? "Expand" : "Collapse"}</span>
+        </button>
+
         <nav className="mt-8 space-y-1">
           {navigation.map((item) => (
             <button
+              aria-label={item.label}
+              title={collapsed ? item.label : undefined}
               className={clsx(
-                "flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-medium transition",
+                "flex w-full items-center rounded-xl py-3 text-left text-sm font-medium transition",
+                collapsed ? "justify-center px-0" : "gap-3 px-3",
                 activeNav === item.label
                   ? "border border-cyan-300/20 bg-cyan-300/10 text-white shadow-glow"
                   : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
@@ -384,20 +417,25 @@ function Sidebar({
               type="button"
             >
               <item.icon className="h-4 w-4" />
-              {item.label}
+              <span className={clsx(collapsed && "sr-only")}>{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="mt-auto rounded-2xl border border-violet-300/18 bg-violet-300/8 p-4">
-          <div className="flex items-center gap-2 text-sm font-semibold text-violet-100">
+        <div
+          className={clsx(
+            "mt-auto rounded-2xl border border-violet-300/18 bg-violet-300/8 transition-all",
+            collapsed ? "p-3" : "p-4"
+          )}
+        >
+          <div className={clsx("flex items-center gap-2 text-sm font-semibold text-violet-100", collapsed && "justify-center")}>
             <Rocket className="h-4 w-4" />
-            Scale Plan
+            <span className={clsx(collapsed && "sr-only")}>Scale Plan</span>
           </div>
-          <p className="mt-2 text-sm leading-6 text-slate-400">
+          <p className={clsx("mt-2 text-sm leading-6 text-slate-400", collapsed && "sr-only")}>
             82% of monthly AI compute used. Capacity forecast remains healthy.
           </p>
-          <div className="mt-4 h-2 rounded-full bg-slate-800">
+          <div className={clsx("h-2 rounded-full bg-slate-800", collapsed ? "mt-3" : "mt-4")}>
             <div className="h-2 w-[82%] rounded-full bg-gradient-to-r from-cyan-300 to-violet-400" />
           </div>
         </div>
