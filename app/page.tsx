@@ -10,7 +10,9 @@ import {
   Bell,
   Bot,
   BrainCircuit,
+  Building2,
   CheckCircle2,
+  ChevronDown,
   CircleDot,
   Clock3,
   DatabaseZap,
@@ -32,7 +34,6 @@ import {
   Sparkles,
   Trash2,
   Users,
-  Building2,
   X
 } from "lucide-react";
 import clsx from "clsx";
@@ -801,6 +802,8 @@ function Header({
   onRunReport: () => void;
   t: Translate;
 }) {
+  const [openMenu, setOpenMenu] = useState<"language" | "workspace" | null>(null);
+
   return (
     <header className="mt-5 flex flex-col gap-4 lg:mt-0 xl:flex-row xl:items-end xl:justify-between">
       <div>
@@ -813,43 +816,81 @@ function Header({
       </div>
 
       <div className="glass-panel flex flex-col gap-2 rounded-2xl p-3 sm:flex-row sm:items-center">
-        <label className="flex h-14 min-w-36 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3">
-          <Globe2 className="h-4 w-4 shrink-0 text-cyan-100" />
-          <div className="min-w-0">
-            <p className="text-[11px] font-medium text-slate-500">{t("Language")}</p>
-            <select
-              aria-label={t("Select language")}
-              className="w-full bg-transparent text-sm font-semibold text-white outline-none"
-              onChange={(event) => setLanguage(event.target.value as Lang)}
-              value={language}
-            >
-              {languageOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </label>
+        <div className="relative">
+          <button
+            aria-expanded={openMenu === "language"}
+            className="flex h-14 min-w-36 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-left transition hover:bg-white/10"
+            onClick={() => setOpenMenu(openMenu === "language" ? null : "language")}
+            type="button"
+          >
+            <Globe2 className="h-4 w-4 shrink-0 text-cyan-100" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium text-slate-500">{t("Language")}</p>
+              <p className="text-sm font-semibold text-white">{languageOptions.find((option) => option.value === language)?.label}</p>
+            </div>
+            <ChevronDown className={clsx("h-4 w-4 text-slate-400 transition", openMenu === "language" && "rotate-180")} />
+          </button>
 
-        <label className="flex h-14 min-w-56 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3">
-          <Building2 className="h-4 w-4 shrink-0 text-violet-100" />
-          <div className="min-w-0">
-            <p className="text-[11px] font-medium text-slate-500">{t("Workspace")}</p>
-            <select
-              aria-label={t("Select workspace")}
-              className="w-full truncate bg-transparent text-sm font-semibold text-white outline-none"
-              onChange={(event) => setWorkspace(event.target.value)}
-              value={workspace}
-            >
-              {workspaceOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
+          {openMenu === "language" ? (
+            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-full min-w-36 rounded-xl border border-cyan-300/20 bg-slate-950/95 p-1 shadow-glow backdrop-blur-xl">
+              {languageOptions.map((option) => (
+                <button
+                  className={clsx(
+                    "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition",
+                    language === option.value ? "bg-cyan-300 text-slate-950" : "text-slate-200 hover:bg-white/10"
+                  )}
+                  key={option.value}
+                  onClick={() => {
+                    setLanguage(option.value);
+                    setOpenMenu(null);
+                  }}
+                  type="button"
+                >
+                  {option.label}
+                  {language === option.value ? <CheckCircle2 className="h-4 w-4" /> : null}
+                </button>
               ))}
-            </select>
-          </div>
-        </label>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="relative">
+          <button
+            aria-expanded={openMenu === "workspace"}
+            className="flex h-14 min-w-56 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-left transition hover:bg-white/10"
+            onClick={() => setOpenMenu(openMenu === "workspace" ? null : "workspace")}
+            type="button"
+          >
+            <Building2 className="h-4 w-4 shrink-0 text-violet-100" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium text-slate-500">{t("Workspace")}</p>
+              <p className="truncate text-sm font-semibold text-white">{workspace}</p>
+            </div>
+            <ChevronDown className={clsx("h-4 w-4 text-slate-400 transition", openMenu === "workspace" && "rotate-180")} />
+          </button>
+
+          {openMenu === "workspace" ? (
+            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-full min-w-64 rounded-xl border border-violet-300/20 bg-slate-950/95 p-1 shadow-glow backdrop-blur-xl">
+              {workspaceOptions.map((option) => (
+                <button
+                  className={clsx(
+                    "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold transition",
+                    workspace === option ? "bg-violet-300 text-slate-950" : "text-slate-200 hover:bg-white/10"
+                  )}
+                  key={option}
+                  onClick={() => {
+                    setWorkspace(option);
+                    setOpenMenu(null);
+                  }}
+                  type="button"
+                >
+                  <span className="truncate">{option}</span>
+                  {workspace === option ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : null}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
 
         <button
           className="inline-flex h-14 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-5 text-sm font-semibold text-slate-950 transition hover:brightness-110"
