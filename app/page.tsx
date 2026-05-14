@@ -1,6 +1,6 @@
 "use client";
 
-import type { FormEvent } from "react";
+import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import {
@@ -10,12 +10,13 @@ import {
   Bell,
   Bot,
   BrainCircuit,
+  BriefcaseBusiness,
   Building2,
   CheckCircle2,
   ChevronDown,
   CircleDot,
   Clock3,
-  DatabaseZap,
+  Download,
   Gauge,
   Globe2,
   LayoutDashboard,
@@ -25,6 +26,7 @@ import {
   PanelLeftOpen,
   Play,
   Plus,
+  RefreshCw,
   Rocket,
   Save,
   Search,
@@ -33,14 +35,17 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  TrendingUp,
   Users,
-  X
+  WandSparkles,
+  X,
+  Zap
 } from "lucide-react";
 import clsx from "clsx";
 
 type NavKey = "Dashboard" | "Analytics" | "AI Assistant" | "Projects" | "Settings";
-type Tone = "blue" | "violet" | "cyan" | "emerald";
 type Lang = "en" | "zh-Hant" | "zh-Hans";
+type Tone = "blue" | "violet" | "cyan" | "emerald";
 type Translate = (key: string, values?: Record<string, string>) => string;
 
 type Metric = {
@@ -60,25 +65,38 @@ type ActivityItem = {
   tone: "cyan" | "violet" | "emerald" | "amber";
 };
 
+type ProjectStatus = "Live" | "Training" | "Review" | "Paused";
+type ProjectCategory = "Lead Gen" | "Client Success" | "Revenue Ops" | "Delivery Ops";
+
 type Project = {
   id: number;
   name: string;
-  category: string;
-  status: "Live" | "Training" | "Review" | "Paused";
+  client: string;
+  category: ProjectCategory;
+  status: ProjectStatus;
   progress: number;
   updated: string;
 };
 
-type WorkflowStep = {
-  label: string;
-  description: string;
-  state: "Done" | "Running" | "Queued";
+type AutomationState = "Running" | "Queued" | "Paused";
+
+type Automation = {
+  id: number;
+  name: string;
+  owner: string;
+  state: AutomationState;
+  runs: number;
 };
 
 type Message = {
   id: number;
   role: "User" | "AI";
   body: string;
+};
+
+type DropdownOption<T extends string> = {
+  value: T;
+  label: string;
 };
 
 const navigation: Array<{ label: NavKey; icon: LucideIcon }> = [
@@ -89,70 +107,17 @@ const navigation: Array<{ label: NavKey; icon: LucideIcon }> = [
   { label: "Settings", icon: Settings }
 ];
 
-const initialMetrics: Metric[] = [
-  { label: "Total Users", value: "24,892", change: "+18.4%", tone: "blue", icon: Users },
-  { label: "Revenue", value: "$128.6K", change: "+12.8%", tone: "emerald", icon: ArrowUpRight },
-  { label: "AI Requests", value: "1.82M", change: "+31.2%", tone: "violet", icon: BrainCircuit },
-  { label: "Conversion Rate", value: "8.74%", change: "+4.6%", tone: "cyan", icon: Gauge }
-];
-
-const initialActivities: ActivityItem[] = [
-  {
-    id: 1,
-    titleKey: "Model routing optimized",
-    detailKey: "Latency dropped by 18% across assistant tasks.",
-    timeKey: "2 min ago",
-    tone: "cyan"
-  },
-  {
-    id: 2,
-    titleKey: "Enterprise workspace upgraded",
-    detailKey: "Nova Labs moved to the Scale plan.",
-    timeKey: "18 min ago",
-    tone: "emerald"
-  },
-  {
-    id: 3,
-    titleKey: "Automation queued",
-    detailKey: "42 invoices are ready for AI extraction.",
-    timeKey: "41 min ago",
-    tone: "violet"
-  },
-  {
-    id: 4,
-    titleKey: "Usage threshold reached",
-    detailKey: "Request volume is above weekday baseline.",
-    timeKey: "1 hr ago",
-    tone: "amber"
-  }
-];
-
-const initialProjects: Project[] = [
-  { id: 1, name: "Smart Lead Scoring", category: "Sales AI", status: "Live", progress: 92, updated: "Today" },
-  { id: 2, name: "Support Copilot", category: "Customer Ops", status: "Training", progress: 68, updated: "Yesterday" },
-  { id: 3, name: "Revenue Forecasting", category: "Analytics", status: "Review", progress: 81, updated: "May 10" },
-  { id: 4, name: "Document Intelligence", category: "Back Office", status: "Paused", progress: 45, updated: "May 8" }
-];
-
-const initialWorkflow: WorkflowStep[] = [
-  { label: "Collect data", description: "Sync CRM, billing, and app events.", state: "Done" },
-  { label: "Generate insights", description: "Cluster users and detect churn risk.", state: "Running" },
-  { label: "Send actions", description: "Create tasks for success managers.", state: "Queued" }
-];
-
-const initialMessages: Message[] = [
-  { id: 1, role: "AI", body: "Daily revenue is trending up 12.8%. Churn risk is concentrated in trial accounts." },
-  { id: 2, role: "User", body: "Create an action plan for the at-risk segment." },
-  { id: 3, role: "AI", body: "I prepared 3 automation tasks: onboarding email, usage alert, and customer success follow-up." }
-];
-
-const languageOptions: Array<{ value: Lang; label: string }> = [
+const languageOptions: Array<DropdownOption<Lang>> = [
   { value: "zh-Hant", label: "繁中" },
   { value: "zh-Hans", label: "简中" },
   { value: "en", label: "EN" }
 ];
 
-const workspaceOptions = ["Acme Growth Cloud", "Nova Labs AI", "Orbit Finance Ops"];
+const workspaceOptions = ["Acme Growth Cloud", "Nova Labs AI", "Orbit Finance Ops"] as const;
+const modelOptions = ["GrowthOps Reasoner", "Fast Support Copilot", "Revenue Analyst"] as const;
+const dataRegionOptions = ["United States", "European Union", "Asia Pacific"] as const;
+const projectCategories: ProjectCategory[] = ["Lead Gen", "Client Success", "Revenue Ops", "Delivery Ops"];
+const projectStatuses: ProjectStatus[] = ["Live", "Training", "Review", "Paused"];
 
 const translations: Record<Lang, Record<string, string>> = {
   en: {},
@@ -162,6 +127,17 @@ const translations: Record<Lang, Record<string, string>> = {
     "AI Assistant": "AI 助手",
     Projects: "專案",
     Settings: "設定",
+    Language: "語言",
+    Workspace: "工作區",
+    "Run AI Report": "產生 AI 報告",
+    "Generating Report": "產生中...",
+    "AI Report Ready": "AI 報告已就緒",
+    "Report generated for {workspace}": "{workspace} 的報告已產生",
+    "Open assistant": "開啟助手",
+    "Close assistant": "關閉助手",
+    "ClientFlow AI": "ClientFlow AI",
+    "AI GrowthOps for service businesses": "服務型企業的 AI GrowthOps",
+    "AI operations live": "AI 營運即時監控",
     "SaaS Control Center": "SaaS 控制中心",
     "Control Center": "控制中心",
     "Scale Plan": "Scale 方案",
@@ -170,73 +146,75 @@ const translations: Record<Lang, Record<string, string>> = {
     Collapse: "收合",
     "Expand sidebar": "展開側邊欄",
     "Collapse sidebar": "收合側邊欄",
-    "AI operations live": "AI 營運即時監控",
-    Language: "語言",
-    "Select language": "選擇語言",
-    "Select workspace": "選擇工作區",
-    Workspace: "工作區",
-    "Run AI Report": "產生 AI 報告",
-    "Generating Report": "產生中...",
-    "AI Report Ready": "AI 報告已就緒",
-    "Report generated for {workspace}": "{workspace} 的報告已產生",
-    Opportunity: "機會",
-    Risk: "風險",
-    "Next action": "下一步",
-    "Revenue is up 12.8% with strongest growth from automation-heavy teams.": "營收上升 12.8%，成長主要來自高度使用自動化的團隊。",
-    "Trial accounts with low AI usage show the highest churn probability this week.": "本週 AI 使用量偏低的試用帳戶流失機率最高。",
-    "Queue a customer success workflow and review the 30D analytics trend.": "排入客戶成功工作流，並檢視 30D 分析趨勢。",
-    "View Analytics": "查看分析",
-    "Queue Workflow": "排入流程",
-    "Export Report CSV": "匯出報告 CSV",
-    "Close report": "關閉報告",
-    "Dashboard Overview": "儀表板總覽",
-    "Monitor product growth, AI request volume, automation health, and active SaaS projects from one control center.": "從同一個控制中心監控產品成長、AI 請求量、自動化健康度和進行中的 SaaS 專案。",
-    "Explore usage, revenue, request quality, and operational performance across the AI platform.": "探索 AI 平台的使用量、營收、請求品質與營運表現。",
-    "Chat with the assistant, run automation workflows, and track task execution status.": "與 AI 助手對話、執行自動化流程，並追蹤任務執行狀態。",
-    "Create, update, filter, and manage AI product workstreams from the project pipeline.": "在專案管線中建立、更新、篩選並管理 AI 產品工作流。",
-    "Manage workspace preferences, notifications, AI model routing, and security options.": "管理工作區偏好、通知、AI 模型路由與安全選項。",
-    "Total Users": "總用戶",
-    Revenue: "營收",
-    "AI Requests": "AI 請求",
-    "Conversion Rate": "轉換率",
+    "Executive command center": "營運指揮中心",
+    "Monitor lead intake, delivery risk, AI automation, and client revenue health for ClientFlow AI.": "監控 ClientFlow AI 的名單流入、交付風險、AI 自動化與客戶營收健康度。",
+    "Growth analytics": "成長分析",
+    "Analyze funnel quality, revenue movement, AI usage, and churn risk across service-client workspaces.": "分析服務型客戶工作區的漏斗品質、營收變化、AI 使用與流失風險。",
+    "Automation control": "自動化控制",
+    "Run playbooks, monitor AI tasks, and open the assistant from a compact floating panel.": "執行 playbook、監控 AI 任務，並從浮動小窗開啟助手。",
+    "Client delivery projects": "客戶交付專案",
+    "Manage AI-powered delivery pipelines, project progress, client status, and operational ownership.": "管理 AI 驅動的交付管線、專案進度、客戶狀態與營運負責人。",
+    "Platform settings": "平台設定",
+    "Configure model routing, reporting cadence, notification rules, and data residency for ClientFlow AI.": "設定 ClientFlow AI 的模型路由、報告節奏、通知規則與資料所在地。",
+    "Qualified Leads": "合格名單",
+    "Client Revenue": "客戶營收",
+    "AI Tasks Run": "AI 任務執行",
+    "Delivery Health": "交付健康度",
     "vs last month": "較上月",
-    "Analytics Section": "分析區",
-    "AI request growth": "AI 請求成長",
+    "Service Snapshot": "服務快照",
+    "Hot leads routed": "熱門名單已分配",
+    "Delivery risks": "交付風險",
+    "AI hours saved": "AI 節省時數",
+    "Generate outreach tasks": "產生開發任務",
+    "Review delivery risks": "檢視交付風險",
+    "Open analytics": "開啟分析",
+    "Priority Queue": "優先佇列",
+    "Lead response SLA": "名單回覆 SLA",
+    "Proposal follow-ups": "提案跟進",
+    "Client health review": "客戶健康度檢查",
+    "Complete": "完成",
+    "In progress": "進行中",
+    "Needs review": "需要檢查",
+    Funnel: "漏斗",
+    Revenue: "營收",
+    Retention: "留存",
+    Segment: "分群",
+    "Date range": "日期範圍",
     "Export CSV": "匯出 CSV",
-    "Automation runs": "自動化執行",
-    "Active agents": "啟用代理",
-    "Saved hours": "節省時數",
-    "AI Assistant Panel": "AI 助手面板",
-    "Task command queue": "任務指令佇列",
-    Run: "執行",
-    User: "使用者",
-    AI: "AI",
-    "Ask about churn, revenue, or automation...": "詢問流失、營收或自動化...",
-    "Collect data": "收集資料",
-    "Sync CRM, billing, and app events.": "同步 CRM、帳務與應用事件。",
-    "Generate insights": "產生洞察",
-    "Cluster users and detect churn risk.": "分群使用者並偵測流失風險。",
-    "Send actions": "發送行動",
-    "Create tasks for success managers.": "為客戶成功經理建立任務。",
-    Done: "完成",
+    "Refresh forecast": "刷新預測",
+    "Pipeline Value": "管線價值",
+    "Win Rate": "成交率",
+    "Churn Risk": "流失風險",
+    "Avg Response": "平均回覆",
+    "Automation Playbooks": "自動化 Playbook",
+    "Prompt Library": "提示詞庫",
+    "Run playbook": "執行 Playbook",
+    Pause: "暫停",
+    Resume: "恢復",
     Running: "執行中",
     Queued: "排隊中",
-    "AI product pipeline": "AI 產品管線",
-    "Search projects": "搜尋專案",
+    Paused: "暫停",
+    "Lead qualification": "名單篩選",
+    "Proposal writer": "提案撰寫",
+    "Client check-in": "客戶回訪",
     "New Project": "新增專案",
+    "Search projects": "搜尋專案",
     "Project name": "專案名稱",
+    Client: "客戶",
+    Category: "類別",
     Status: "狀態",
     Progress: "進度",
     "Last updated": "最後更新",
     Actions: "操作",
     Add: "新增",
-    Automation: "自動化",
-    "Sales AI": "銷售 AI",
-    "Customer Ops": "客戶營運",
+    Delete: "刪除",
     Live: "上線",
     Training: "訓練中",
     Review: "審核",
-    Paused: "暫停",
+    "Lead Gen": "名單開發",
+    "Client Success": "客戶成功",
+    "Revenue Ops": "營收營運",
+    "Delivery Ops": "交付營運",
     Today: "今天",
     Yesterday: "昨天",
     "Just now": "剛剛",
@@ -247,46 +225,37 @@ const translations: Record<Lang, Record<string, string>> = {
     Clear: "清除",
     "No recent activity.": "目前沒有最近活動。",
     "Workspace controls": "工作區控制",
-    "Workspace name": "工作區名稱",
     "AI model route": "AI 模型路由",
+    "Data region": "資料區域",
     "Email alerts": "Email 通知",
-    "Auto reports": "自動報告",
+    "Weekly client reports": "每週客戶報告",
+    "Auto-assign hot leads": "自動分配熱門名單",
     "Save Settings": "儲存設定",
-    "GPT-5 Automation": "GPT-5 自動化",
+    Saved: "已儲存",
+    "GrowthOps Reasoner": "GrowthOps 推理模型",
     "Fast Support Copilot": "快速客服 Copilot",
-    "Analytics Reasoner": "分析推理模型",
-    "Model routing optimized": "模型路由已最佳化",
-    "Latency dropped by 18% across assistant tasks.": "助手任務延遲下降 18%。",
-    "Enterprise workspace upgraded": "企業工作區已升級",
-    "Nova Labs moved to the Scale plan.": "Nova Labs 已升級至 Scale 方案。",
-    "Automation queued": "自動化已排程",
-    "42 invoices are ready for AI extraction.": "42 張發票已準備進行 AI 擷取。",
-    "Usage threshold reached": "使用量已達門檻",
-    "Request volume is above weekday baseline.": "請求量高於工作日基準。",
-    "2 min ago": "2 分鐘前",
-    "18 min ago": "18 分鐘前",
-    "41 min ago": "41 分鐘前",
-    "1 hr ago": "1 小時前",
-    "AI report generated": "AI 報告已產生",
-    "Executive summary, churn signals, and revenue notes are ready.": "主管摘要、流失訊號與營收註記已完成。",
-    "Automation workflow started": "自動化流程已啟動",
-    "Customer success tasks are being generated from assistant insights.": "正在根據助手洞察產生客戶成功任務。",
-    "Automation workflow completed": "自動化流程已完成",
-    "Follow-up tasks were created for the at-risk customer segment.": "已為高風險客群建立跟進任務。",
-    "Analytics exported": "分析資料已匯出",
-    "{range} performance data was downloaded as CSV.": "{range} 表現資料已下載為 CSV。",
-    "Assistant response created": "助手回覆已建立",
-    "A new AI recommendation was added to the workspace thread.": "新的 AI 建議已加入工作區對話串。",
-    "Project created": "專案已建立",
-    "{name} was added to the AI product pipeline.": "{name} 已加入 AI 產品管線。",
-    "Project removed": "專案已移除",
-    "{name} was removed from the dashboard.": "{name} 已從儀表板移除。",
-    "Settings saved": "設定已儲存",
-    "{name} preferences were updated.": "{name} 的偏好設定已更新。",
-    "Daily revenue is trending up 12.8%. Churn risk is concentrated in trial accounts.": "每日營收上升 12.8%。流失風險主要集中在試用帳戶。",
-    "Create an action plan for the at-risk segment.": "為高風險客群建立行動計畫。",
-    "I prepared 3 automation tasks: onboarding email, usage alert, and customer success follow-up.": "我已準備 3 個自動化任務：入門 Email、使用量提醒與客戶成功跟進。",
-    "I found 3 priority segments, queued a follow-up workflow, and updated the project risk score.": "我找到 3 個優先客群，已排入跟進流程，並更新專案風險分數。"
+    "Revenue Analyst": "營收分析模型",
+    "United States": "美國",
+    "European Union": "歐盟",
+    "Asia Pacific": "亞太",
+    Opportunity: "機會",
+    Risk: "風險",
+    "Next action": "下一步",
+    "Revenue is up 12.8% with strongest growth from automation-heavy teams.": "營收上升 12.8%，成長主要來自高度使用自動化的團隊。",
+    "Trial accounts with low AI usage show the highest churn probability this week.": "本週 AI 使用量偏低的試用帳戶流失機率最高。",
+    "Queue a customer success workflow and review the 30D analytics trend.": "排入客戶成功工作流，並檢視 30D 分析趨勢。",
+    "View Analytics": "查看分析",
+    "Queue Workflow": "排入流程",
+    "Export Report CSV": "匯出報告 CSV",
+    "Close report": "關閉報告",
+    "Ask ClientFlow about leads, projects, or churn...": "詢問 ClientFlow 名單、專案或流失...",
+    User: "使用者",
+    AI: "AI",
+    "Send message": "送出訊息",
+    "ClientFlow found 4 hot leads and 2 delivery risks that need attention today.": "ClientFlow 找到 4 個熱門名單與 2 個今日需要處理的交付風險。",
+    "Draft a recovery plan for risky delivery accounts.": "為高風險交付帳戶草擬恢復計畫。",
+    "I created a 3-step recovery workflow: owner assignment, client update, and delivery checkpoint.": "我建立了 3 步恢復流程：指派負責人、更新客戶、交付檢查點。",
+    "I routed this to the right workflow and added an activity note.": "我已把它分配到正確工作流，並新增活動紀錄。"
   },
   "zh-Hans": {
     Dashboard: "仪表盘",
@@ -294,6 +263,17 @@ const translations: Record<Lang, Record<string, string>> = {
     "AI Assistant": "AI 助手",
     Projects: "项目",
     Settings: "设置",
+    Language: "语言",
+    Workspace: "工作区",
+    "Run AI Report": "生成 AI 报告",
+    "Generating Report": "生成中...",
+    "AI Report Ready": "AI 报告已就绪",
+    "Report generated for {workspace}": "{workspace} 的报告已生成",
+    "Open assistant": "打开助手",
+    "Close assistant": "关闭助手",
+    "ClientFlow AI": "ClientFlow AI",
+    "AI GrowthOps for service businesses": "服务型企业的 AI GrowthOps",
+    "AI operations live": "AI 运营实时监控",
     "SaaS Control Center": "SaaS 控制中心",
     "Control Center": "控制中心",
     "Scale Plan": "Scale 方案",
@@ -302,73 +282,75 @@ const translations: Record<Lang, Record<string, string>> = {
     Collapse: "收起",
     "Expand sidebar": "展开侧边栏",
     "Collapse sidebar": "收起侧边栏",
-    "AI operations live": "AI 运营实时监控",
-    Language: "语言",
-    "Select language": "选择语言",
-    "Select workspace": "选择工作区",
-    Workspace: "工作区",
-    "Run AI Report": "生成 AI 报告",
-    "Generating Report": "生成中...",
-    "AI Report Ready": "AI 报告已就绪",
-    "Report generated for {workspace}": "{workspace} 的报告已生成",
-    Opportunity: "机会",
-    Risk: "风险",
-    "Next action": "下一步",
-    "Revenue is up 12.8% with strongest growth from automation-heavy teams.": "收入上升 12.8%，增长主要来自高度使用自动化的团队。",
-    "Trial accounts with low AI usage show the highest churn probability this week.": "本周 AI 使用量偏低的试用账户流失概率最高。",
-    "Queue a customer success workflow and review the 30D analytics trend.": "排入客户成功工作流，并查看 30D 分析趋势。",
-    "View Analytics": "查看分析",
-    "Queue Workflow": "排入流程",
-    "Export Report CSV": "导出报告 CSV",
-    "Close report": "关闭报告",
-    "Dashboard Overview": "仪表盘总览",
-    "Monitor product growth, AI request volume, automation health, and active SaaS projects from one control center.": "从同一个控制中心监控产品增长、AI 请求量、自动化健康度和进行中的 SaaS 项目。",
-    "Explore usage, revenue, request quality, and operational performance across the AI platform.": "探索 AI 平台的使用量、收入、请求质量与运营表现。",
-    "Chat with the assistant, run automation workflows, and track task execution status.": "与 AI 助手对话、运行自动化流程，并跟踪任务执行状态。",
-    "Create, update, filter, and manage AI product workstreams from the project pipeline.": "在项目管线中创建、更新、筛选并管理 AI 产品工作流。",
-    "Manage workspace preferences, notifications, AI model routing, and security options.": "管理工作区偏好、通知、AI 模型路由与安全选项。",
-    "Total Users": "总用户",
-    Revenue: "收入",
-    "AI Requests": "AI 请求",
-    "Conversion Rate": "转化率",
+    "Executive command center": "运营指挥中心",
+    "Monitor lead intake, delivery risk, AI automation, and client revenue health for ClientFlow AI.": "监控 ClientFlow AI 的名单流入、交付风险、AI 自动化与客户收入健康度。",
+    "Growth analytics": "增长分析",
+    "Analyze funnel quality, revenue movement, AI usage, and churn risk across service-client workspaces.": "分析服务型客户工作区的漏斗质量、收入变化、AI 使用与流失风险。",
+    "Automation control": "自动化控制",
+    "Run playbooks, monitor AI tasks, and open the assistant from a compact floating panel.": "运行 playbook、监控 AI 任务，并从浮动小窗打开助手。",
+    "Client delivery projects": "客户交付项目",
+    "Manage AI-powered delivery pipelines, project progress, client status, and operational ownership.": "管理 AI 驱动的交付管线、项目进度、客户状态与运营负责人。",
+    "Platform settings": "平台设置",
+    "Configure model routing, reporting cadence, notification rules, and data residency for ClientFlow AI.": "配置 ClientFlow AI 的模型路由、报告节奏、通知规则与数据所在地。",
+    "Qualified Leads": "合格名单",
+    "Client Revenue": "客户收入",
+    "AI Tasks Run": "AI 任务运行",
+    "Delivery Health": "交付健康度",
     "vs last month": "较上月",
-    "Analytics Section": "分析区",
-    "AI request growth": "AI 请求增长",
+    "Service Snapshot": "服务快照",
+    "Hot leads routed": "热门名单已分配",
+    "Delivery risks": "交付风险",
+    "AI hours saved": "AI 节省时数",
+    "Generate outreach tasks": "生成开发任务",
+    "Review delivery risks": "查看交付风险",
+    "Open analytics": "打开分析",
+    "Priority Queue": "优先队列",
+    "Lead response SLA": "名单回复 SLA",
+    "Proposal follow-ups": "提案跟进",
+    "Client health review": "客户健康度检查",
+    "Complete": "完成",
+    "In progress": "进行中",
+    "Needs review": "需要检查",
+    Funnel: "漏斗",
+    Revenue: "收入",
+    Retention: "留存",
+    Segment: "分群",
+    "Date range": "日期范围",
     "Export CSV": "导出 CSV",
-    "Automation runs": "自动化运行",
-    "Active agents": "启用代理",
-    "Saved hours": "节省时数",
-    "AI Assistant Panel": "AI 助手面板",
-    "Task command queue": "任务指令队列",
-    Run: "运行",
-    User: "用户",
-    AI: "AI",
-    "Ask about churn, revenue, or automation...": "询问流失、收入或自动化...",
-    "Collect data": "收集数据",
-    "Sync CRM, billing, and app events.": "同步 CRM、账务与应用事件。",
-    "Generate insights": "生成洞察",
-    "Cluster users and detect churn risk.": "对用户分群并检测流失风险。",
-    "Send actions": "发送行动",
-    "Create tasks for success managers.": "为客户成功经理创建任务。",
-    Done: "完成",
+    "Refresh forecast": "刷新预测",
+    "Pipeline Value": "管线价值",
+    "Win Rate": "成交率",
+    "Churn Risk": "流失风险",
+    "Avg Response": "平均回复",
+    "Automation Playbooks": "自动化 Playbook",
+    "Prompt Library": "提示词库",
+    "Run playbook": "运行 Playbook",
+    Pause: "暂停",
+    Resume: "恢复",
     Running: "运行中",
     Queued: "排队中",
-    "AI product pipeline": "AI 产品管线",
-    "Search projects": "搜索项目",
+    Paused: "暂停",
+    "Lead qualification": "名单筛选",
+    "Proposal writer": "提案撰写",
+    "Client check-in": "客户回访",
     "New Project": "新增项目",
+    "Search projects": "搜索项目",
     "Project name": "项目名称",
+    Client: "客户",
+    Category: "类别",
     Status: "状态",
     Progress: "进度",
     "Last updated": "最后更新",
     Actions: "操作",
     Add: "新增",
-    Automation: "自动化",
-    "Sales AI": "销售 AI",
-    "Customer Ops": "客户运营",
+    Delete: "删除",
     Live: "上线",
     Training: "训练中",
     Review: "审核",
-    Paused: "暂停",
+    "Lead Gen": "名单开发",
+    "Client Success": "客户成功",
+    "Revenue Ops": "收入运营",
+    "Delivery Ops": "交付运营",
     Today: "今天",
     Yesterday: "昨天",
     "Just now": "刚刚",
@@ -379,48 +361,112 @@ const translations: Record<Lang, Record<string, string>> = {
     Clear: "清除",
     "No recent activity.": "暂无最近活动。",
     "Workspace controls": "工作区控制",
-    "Workspace name": "工作区名称",
     "AI model route": "AI 模型路由",
+    "Data region": "数据区域",
     "Email alerts": "Email 通知",
-    "Auto reports": "自动报告",
+    "Weekly client reports": "每周客户报告",
+    "Auto-assign hot leads": "自动分配热门名单",
     "Save Settings": "保存设置",
-    "GPT-5 Automation": "GPT-5 自动化",
+    Saved: "已保存",
+    "GrowthOps Reasoner": "GrowthOps 推理模型",
     "Fast Support Copilot": "快速客服 Copilot",
-    "Analytics Reasoner": "分析推理模型",
-    "Model routing optimized": "模型路由已优化",
-    "Latency dropped by 18% across assistant tasks.": "助手任务延迟下降 18%。",
-    "Enterprise workspace upgraded": "企业工作区已升级",
-    "Nova Labs moved to the Scale plan.": "Nova Labs 已升级至 Scale 方案。",
-    "Automation queued": "自动化已排程",
-    "42 invoices are ready for AI extraction.": "42 张发票已准备进行 AI 提取。",
-    "Usage threshold reached": "使用量已达阈值",
-    "Request volume is above weekday baseline.": "请求量高于工作日基准。",
-    "2 min ago": "2 分钟前",
-    "18 min ago": "18 分钟前",
-    "41 min ago": "41 分钟前",
-    "1 hr ago": "1 小时前",
-    "AI report generated": "AI 报告已生成",
-    "Executive summary, churn signals, and revenue notes are ready.": "管理摘要、流失信号与收入备注已完成。",
-    "Automation workflow started": "自动化流程已启动",
-    "Customer success tasks are being generated from assistant insights.": "正在根据助手洞察生成客户成功任务。",
-    "Automation workflow completed": "自动化流程已完成",
-    "Follow-up tasks were created for the at-risk customer segment.": "已为高风险客群创建跟进任务。",
-    "Analytics exported": "分析数据已导出",
-    "{range} performance data was downloaded as CSV.": "{range} 表现数据已下载为 CSV。",
-    "Assistant response created": "助手回复已创建",
-    "A new AI recommendation was added to the workspace thread.": "新的 AI 建议已加入工作区对话串。",
-    "Project created": "项目已创建",
-    "{name} was added to the AI product pipeline.": "{name} 已加入 AI 产品管线。",
-    "Project removed": "项目已移除",
-    "{name} was removed from the dashboard.": "{name} 已从仪表盘移除。",
-    "Settings saved": "设置已保存",
-    "{name} preferences were updated.": "{name} 的偏好设置已更新。",
-    "Daily revenue is trending up 12.8%. Churn risk is concentrated in trial accounts.": "每日收入上升 12.8%。流失风险主要集中在试用账户。",
-    "Create an action plan for the at-risk segment.": "为高风险客群创建行动计划。",
-    "I prepared 3 automation tasks: onboarding email, usage alert, and customer success follow-up.": "我已准备 3 个自动化任务：入门 Email、使用量提醒与客户成功跟进。",
-    "I found 3 priority segments, queued a follow-up workflow, and updated the project risk score.": "我找到 3 个优先客群，已排入跟进流程，并更新项目风险分数。"
+    "Revenue Analyst": "收入分析模型",
+    "United States": "美国",
+    "European Union": "欧盟",
+    "Asia Pacific": "亚太",
+    Opportunity: "机会",
+    Risk: "风险",
+    "Next action": "下一步",
+    "Revenue is up 12.8% with strongest growth from automation-heavy teams.": "收入上升 12.8%，增长主要来自高度使用自动化的团队。",
+    "Trial accounts with low AI usage show the highest churn probability this week.": "本周 AI 使用量偏低的试用账户流失概率最高。",
+    "Queue a customer success workflow and review the 30D analytics trend.": "排入客户成功工作流，并查看 30D 分析趋势。",
+    "View Analytics": "查看分析",
+    "Queue Workflow": "排入流程",
+    "Export Report CSV": "导出报告 CSV",
+    "Close report": "关闭报告",
+    "Ask ClientFlow about leads, projects, or churn...": "询问 ClientFlow 名单、项目或流失...",
+    User: "用户",
+    AI: "AI",
+    "Send message": "发送消息",
+    "ClientFlow found 4 hot leads and 2 delivery risks that need attention today.": "ClientFlow 找到 4 个热门名单与 2 个今天需要处理的交付风险。",
+    "Draft a recovery plan for risky delivery accounts.": "为高风险交付账户草拟恢复计划。",
+    "I created a 3-step recovery workflow: owner assignment, client update, and delivery checkpoint.": "我创建了 3 步恢复流程：指派负责人、更新客户、交付检查点。",
+    "I routed this to the right workflow and added an activity note.": "我已把它分配到正确工作流，并新增活动记录。"
   }
 };
+
+const pageCopy: Record<NavKey, { title: string; description: string }> = {
+  Dashboard: {
+    title: "Executive command center",
+    description: "Monitor lead intake, delivery risk, AI automation, and client revenue health for ClientFlow AI."
+  },
+  Analytics: {
+    title: "Growth analytics",
+    description: "Analyze funnel quality, revenue movement, AI usage, and churn risk across service-client workspaces."
+  },
+  "AI Assistant": {
+    title: "Automation control",
+    description: "Run playbooks, monitor AI tasks, and open the assistant from a compact floating panel."
+  },
+  Projects: {
+    title: "Client delivery projects",
+    description: "Manage AI-powered delivery pipelines, project progress, client status, and operational ownership."
+  },
+  Settings: {
+    title: "Platform settings",
+    description: "Configure model routing, reporting cadence, notification rules, and data residency for ClientFlow AI."
+  }
+};
+
+const initialMetrics: Metric[] = [
+  { label: "Qualified Leads", value: "1,284", change: "+18.4%", tone: "blue", icon: Users },
+  { label: "Client Revenue", value: "$128.6K", change: "+12.8%", tone: "emerald", icon: ArrowUpRight },
+  { label: "AI Tasks Run", value: "42,910", change: "+31.2%", tone: "violet", icon: BrainCircuit },
+  { label: "Delivery Health", value: "94%", change: "+4.6%", tone: "cyan", icon: Gauge }
+];
+
+const initialActivities: ActivityItem[] = [
+  {
+    id: 1,
+    titleKey: "Lead response SLA",
+    detailKey: "4 hot leads were assigned to delivery owners.",
+    timeKey: "2 min ago",
+    tone: "cyan"
+  },
+  {
+    id: 2,
+    titleKey: "Proposal follow-ups",
+    detailKey: "ClientFlow drafted follow-up emails for 8 proposals.",
+    timeKey: "18 min ago",
+    tone: "emerald"
+  },
+  {
+    id: 3,
+    titleKey: "Client health review",
+    detailKey: "2 delivery accounts need a recovery workflow.",
+    timeKey: "41 min ago",
+    tone: "violet"
+  }
+];
+
+const initialProjects: Project[] = [
+  { id: 1, name: "Lead Scoring Engine", client: "Acme Growth Cloud", category: "Lead Gen", status: "Live", progress: 92, updated: "Today" },
+  { id: 2, name: "Support Copilot Launch", client: "Nova Labs AI", category: "Client Success", status: "Training", progress: 68, updated: "Yesterday" },
+  { id: 3, name: "Revenue Forecasting", client: "Orbit Finance Ops", category: "Revenue Ops", status: "Review", progress: 81, updated: "May 10" },
+  { id: 4, name: "Delivery Risk Monitor", client: "Acme Growth Cloud", category: "Delivery Ops", status: "Paused", progress: 45, updated: "May 8" }
+];
+
+const initialAutomations: Automation[] = [
+  { id: 1, name: "Lead qualification", owner: "Sales Ops", state: "Running", runs: 1248 },
+  { id: 2, name: "Proposal writer", owner: "Growth Team", state: "Queued", runs: 486 },
+  { id: 3, name: "Client check-in", owner: "Success Team", state: "Paused", runs: 722 }
+];
+
+const initialMessages: Message[] = [
+  { id: 1, role: "AI", body: "ClientFlow found 4 hot leads and 2 delivery risks that need attention today." },
+  { id: 2, role: "User", body: "Draft a recovery plan for risky delivery accounts." },
+  { id: 3, role: "AI", body: "I created a 3-step recovery workflow: owner assignment, client update, and delivery checkpoint." }
+];
 
 const chartSets = {
   "7D": [116, 90, 97, 58, 68, 34, 46, 18, 28],
@@ -442,39 +488,26 @@ const activityTone: Record<ActivityItem["tone"], string> = {
   violet: "bg-violet-300"
 };
 
-const statusStyle: Record<Project["status"], string> = {
+const statusStyle: Record<ProjectStatus, string> = {
   Live: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
   Training: "border-cyan-400/30 bg-cyan-400/10 text-cyan-100",
   Review: "border-violet-400/30 bg-violet-400/10 text-violet-100",
   Paused: "border-slate-400/30 bg-slate-400/10 text-slate-300"
 };
 
-const pageCopy: Record<NavKey, { title: string; description: string }> = {
-  Dashboard: {
-    title: "Dashboard Overview",
-    description: "Monitor product growth, AI request volume, automation health, and active SaaS projects from one control center."
-  },
-  Analytics: {
-    title: "Analytics",
-    description: "Explore usage, revenue, request quality, and operational performance across the AI platform."
-  },
-  "AI Assistant": {
-    title: "AI Assistant",
-    description: "Chat with the assistant, run automation workflows, and track task execution status."
-  },
-  Projects: {
-    title: "Projects",
-    description: "Create, update, filter, and manage AI product workstreams from the project pipeline."
-  },
-  Settings: {
-    title: "Settings",
-    description: "Manage workspace preferences, notifications, AI model routing, and security options."
-  }
-};
-
 function pointsFrom(values: number[]) {
   const gap = 440 / (values.length - 1);
   return values.map((value, index) => `${Math.round(index * gap)},${value}`).join(" ");
+}
+
+function downloadCsv(filename: string, rows: string[]) {
+  const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function Home() {
@@ -485,19 +518,28 @@ export default function Home() {
   const [metrics, setMetrics] = useState(initialMetrics);
   const [activities, setActivities] = useState(initialActivities);
   const [projects, setProjects] = useState(initialProjects);
-  const [workflow, setWorkflow] = useState(initialWorkflow);
+  const [automations, setAutomations] = useState(initialAutomations);
   const [messages, setMessages] = useState(initialMessages);
   const [workspace, setWorkspace] = useState("Acme Growth Cloud");
   const [range, setRange] = useState<keyof typeof chartSets>("7D");
+  const [segment, setSegment] = useState("Funnel");
   const [reportOpen, setReportOpen] = useState(false);
   const [reportRunning, setReportRunning] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [modelRoute, setModelRoute] = useState("GrowthOps Reasoner");
+  const [dataRegion, setDataRegion] = useState("United States");
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [emailAlerts, setEmailAlerts] = useState(true);
+  const [weeklyReports, setWeeklyReports] = useState(true);
+  const [autoAssign, setAutoAssign] = useState(true);
+
   const t: Translate = (key, values) => {
     const template = translations[language][key] ?? key;
     return Object.entries(values ?? {}).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), template);
   };
 
   const addActivity = (item: Omit<ActivityItem, "id" | "timeKey">) => {
-    setActivities((current) => [{ ...item, id: Date.now(), timeKey: "Just now" }, ...current].slice(0, 7));
+    setActivities((current) => [{ ...item, id: Date.now(), timeKey: "Just now" }, ...current].slice(0, 8));
   };
 
   const runReport = () => {
@@ -505,126 +547,134 @@ export default function Home() {
     setReportRunning(true);
     setMetrics((current) =>
       current.map((metric) =>
-        metric.label === "AI Requests" ? { ...metric, value: "1.86M", change: "+33.9%" } : metric
+        metric.label === "AI Tasks Run" ? { ...metric, value: "43,280", change: "+34.8%" } : metric
       )
     );
     addActivity({
-      titleKey: "AI report generated",
-      detailKey: "Executive summary, churn signals, and revenue notes are ready.",
+      titleKey: "AI Report Ready",
+      detailKey: "Report generated for {workspace}",
+      values: { workspace },
       tone: "cyan"
     });
     window.setTimeout(() => setReportRunning(false), 650);
   };
 
-  const runAutomation = () => {
-    setWorkflow((current) => current.map((step) => ({ ...step, state: step.label === "Send actions" ? "Running" : "Done" })));
-    addActivity({
-      titleKey: "Automation workflow started",
-      detailKey: "Customer success tasks are being generated from assistant insights.",
-      tone: "violet"
-    });
-    window.setTimeout(() => {
-      setWorkflow((current) => current.map((step) => ({ ...step, state: "Done" })));
-      addActivity({
-        titleKey: "Automation workflow completed",
-        detailKey: "Follow-up tasks were created for the at-risk customer segment.",
-        tone: "emerald"
-      });
-    }, 1400);
-  };
-
   const exportAnalytics = () => {
-    const rows = ["range,users,revenue,ai_requests,conversion", `${range},24892,128600,1860000,8.74`];
-    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `neuraldesk-analytics-${range}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
+    downloadCsv("clientflow-growth-analytics.csv", [
+      "range,segment,qualified_leads,revenue,win_rate,churn_risk",
+      `${range},${segment},1284,128600,38,7`
+    ]);
     addActivity({
-      titleKey: "Analytics exported",
-      detailKey: "{range} performance data was downloaded as CSV.",
-      values: { range },
+      titleKey: "Export CSV",
+      detailKey: "Growth analytics export is ready for ClientFlow AI.",
       tone: "cyan"
     });
+  };
+
+  const runAutomation = (automationId?: number) => {
+    setAutomations((current) =>
+      current.map((automation) =>
+        automationId === undefined || automation.id === automationId
+          ? { ...automation, state: "Running", runs: automation.runs + 1 }
+          : automation
+      )
+    );
+    addActivity({
+      titleKey: "Run playbook",
+      detailKey: "I routed this to the right workflow and added an activity note.",
+      tone: "violet"
+    });
+  };
+
+  const saveSettings = () => {
+    setSettingsSaved(true);
+    addActivity({
+      titleKey: "Save Settings",
+      detailKey: "{workspace} preferences were updated.",
+      values: { workspace },
+      tone: "emerald"
+    });
+    window.setTimeout(() => setSettingsSaved(false), 1400);
   };
 
   const renderContent = () => {
     if (activeNav === "Analytics") {
       return (
-        <>
-          <AnalyticsPanel range={range} setRange={setRange} onExport={exportAnalytics} t={t} />
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {metrics.map((metric) => (
-              <MetricCard key={metric.label} metric={metric} t={t} />
-            ))}
-          </div>
-          <div className="mt-5">
-            <ActivityPanel activities={activities} onClear={() => setActivities([])} t={t} />
-          </div>
-        </>
+        <AnalyticsPage
+          onExport={exportAnalytics}
+          onRefresh={() => {
+            setRange("30D");
+            addActivity({
+              titleKey: "Refresh forecast",
+              detailKey: "Growth forecast refreshed with latest funnel quality signals.",
+              tone: "cyan"
+            });
+          }}
+          range={range}
+          segment={segment}
+          setRange={setRange}
+          setSegment={setSegment}
+          t={t}
+        />
       );
     }
 
     if (activeNav === "AI Assistant") {
       return (
-        <div className="mt-6 grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-          <AssistantPanel
-            messages={messages}
-            setMessages={setMessages}
-            workflow={workflow}
-            onRunAutomation={runAutomation}
-            addActivity={addActivity}
-            t={t}
-          />
-          <ActivityPanel activities={activities} onClear={() => setActivities([])} t={t} />
-        </div>
+        <AutomationPage
+          automations={automations}
+          onOpenAssistant={() => setAssistantOpen(true)}
+          onRunAutomation={runAutomation}
+          setAutomations={setAutomations}
+          t={t}
+        />
       );
     }
 
     if (activeNav === "Projects") {
       return (
-        <div className="mt-6">
-          <ProjectsTable projects={projects} setProjects={setProjects} addActivity={addActivity} t={t} />
-        </div>
+        <ProjectsPage
+          addActivity={addActivity}
+          projects={projects}
+          setProjects={setProjects}
+          t={t}
+        />
       );
     }
 
     if (activeNav === "Settings") {
       return (
-        <div className="mt-6">
-          <SettingsPanel workspace={workspace} setWorkspace={setWorkspace} addActivity={addActivity} t={t} />
-        </div>
+        <SettingsPage
+          autoAssign={autoAssign}
+          dataRegion={dataRegion}
+          emailAlerts={emailAlerts}
+          modelRoute={modelRoute}
+          onSave={saveSettings}
+          saved={settingsSaved}
+          setAutoAssign={setAutoAssign}
+          setDataRegion={setDataRegion}
+          setEmailAlerts={setEmailAlerts}
+          setModelRoute={setModelRoute}
+          setWeeklyReports={setWeeklyReports}
+          t={t}
+          weeklyReports={weeklyReports}
+        />
       );
     }
 
     return (
-      <>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {metrics.map((metric) => (
-            <MetricCard key={metric.label} metric={metric} t={t} />
-          ))}
-        </div>
-
-        <div className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_0.9fr]">
-          <AnalyticsPanel range={range} setRange={setRange} onExport={exportAnalytics} compact t={t} />
-          <AssistantPanel
-            messages={messages}
-            setMessages={setMessages}
-            workflow={workflow}
-            onRunAutomation={runAutomation}
-            addActivity={addActivity}
-            t={t}
-            compact
-          />
-        </div>
-
-        <div className="mt-5 grid gap-5 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.78fr)]">
-          <ProjectsTable projects={projects} setProjects={setProjects} addActivity={addActivity} compact t={t} />
-          <ActivityPanel activities={activities} onClear={() => setActivities([])} t={t} />
-        </div>
-      </>
+      <DashboardPage
+        activities={activities}
+        metrics={metrics}
+        onClearActivities={() => setActivities([])}
+        onGenerateTasks={() => {
+          runAutomation();
+          setAssistantOpen(true);
+        }}
+        onOpenAnalytics={() => setActiveNav("Analytics")}
+        onReviewRisks={() => setActiveNav("Projects")}
+        t={t}
+      />
     );
   };
 
@@ -650,19 +700,19 @@ export default function Home() {
           <Header
             activeNav={activeNav}
             language={language}
-            setLanguage={setLanguage}
-            workspace={workspace}
-            setWorkspace={setWorkspace}
             onRunReport={runReport}
             reportRunning={reportRunning}
+            setLanguage={setLanguage}
+            setWorkspace={setWorkspace}
             t={t}
+            workspace={workspace}
           />
           {reportOpen ? (
             <ReportPanel
               isRunning={reportRunning}
               onClose={() => setReportOpen(false)}
               onExport={exportAnalytics}
-              onQueueWorkflow={runAutomation}
+              onQueueWorkflow={() => runAutomation()}
               onViewAnalytics={() => setActiveNav("Analytics")}
               t={t}
               workspace={workspace}
@@ -671,6 +721,17 @@ export default function Home() {
           {renderContent()}
         </section>
       </div>
+
+      <AssistantBubble onClick={() => setAssistantOpen(true)} t={t} />
+      {assistantOpen ? (
+        <AssistantWindow
+          addActivity={addActivity}
+          messages={messages}
+          onClose={() => setAssistantOpen(false)}
+          setMessages={setMessages}
+          t={t}
+        />
+      ) : null}
     </main>
   );
 }
@@ -688,9 +749,7 @@ function Sidebar({
   setCollapsed: (collapsed: boolean) => void;
   t: Translate;
 }) {
-  const labelClass = collapsed
-    ? "max-w-0 overflow-hidden opacity-0 delay-0"
-    : "max-w-44 opacity-100 delay-200";
+  const labelClass = collapsed ? "max-w-0 overflow-hidden opacity-0 delay-0" : "max-w-44 opacity-100 delay-200";
 
   return (
     <aside
@@ -712,10 +771,10 @@ function Sidebar({
       <div className="flex h-full flex-col">
         <div className={clsx("flex items-center gap-3 px-2 py-3", collapsed && "justify-center px-0")}>
           <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10">
-            <Sparkles className="h-5 w-5 text-cyan-200" />
+            <WandSparkles className="h-5 w-5 text-cyan-200" />
           </div>
           <div className={clsx("min-w-0 whitespace-nowrap transition-all duration-150", labelClass)}>
-            <p className="text-sm font-semibold text-white">NeuralDesk AI</p>
+            <p className="text-sm font-semibold text-white">{t("ClientFlow AI")}</p>
             <p className="text-xs text-slate-400">{t("SaaS Control Center")}</p>
           </div>
         </div>
@@ -724,7 +783,6 @@ function Sidebar({
           {navigation.map((item) => (
             <button
               aria-label={t(item.label)}
-              title={collapsed ? t(item.label) : undefined}
               className={clsx(
                 "flex w-full items-center rounded-xl py-3 text-left text-sm font-medium transition",
                 collapsed ? "justify-center px-0" : "gap-3 px-3",
@@ -734,6 +792,7 @@ function Sidebar({
               )}
               key={item.label}
               onClick={() => setActiveNav(item.label)}
+              title={collapsed ? t(item.label) : undefined}
               type="button"
             >
               <item.icon className="h-4 w-4" />
@@ -742,22 +801,12 @@ function Sidebar({
           ))}
         </nav>
 
-        <div
-          className={clsx(
-            "mt-auto rounded-2xl border border-violet-300/18 bg-violet-300/8 transition-all",
-            collapsed ? "p-3" : "p-4"
-          )}
-        >
+        <div className={clsx("mt-auto rounded-2xl border border-violet-300/18 bg-violet-300/8 transition-all", collapsed ? "p-3" : "p-4")}>
           <div className={clsx("flex items-center gap-2 text-sm font-semibold text-violet-100", collapsed && "justify-center")}>
             <Rocket className="h-4 w-4" />
             <span className={clsx("whitespace-nowrap transition-all duration-150", labelClass)}>{t("Scale Plan")}</span>
           </div>
-          <p
-            className={clsx(
-              "mt-2 text-sm leading-6 text-slate-400 transition-all duration-150",
-              collapsed ? "max-h-0 overflow-hidden opacity-0 delay-0" : "max-h-24 opacity-100 delay-200"
-            )}
-          >
+          <p className={clsx("mt-2 text-sm leading-6 text-slate-400 transition-all duration-150", collapsed ? "max-h-0 overflow-hidden opacity-0 delay-0" : "max-h-24 opacity-100 delay-200")}>
             {t("82% of monthly AI compute used. Capacity forecast remains healthy.")}
           </p>
           <div className={clsx("h-2 rounded-full bg-slate-800", collapsed ? "mt-3" : "mt-4")}>
@@ -787,15 +836,15 @@ function MobileHeader({
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10">
-            <Sparkles className="h-5 w-5 text-cyan-200" />
+            <WandSparkles className="h-5 w-5 text-cyan-200" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">NeuralDesk AI</p>
+            <p className="text-sm font-semibold text-white">{t("ClientFlow AI")}</p>
             <p className="text-xs text-slate-400">{t("Control Center")}</p>
           </div>
         </div>
         <button
-          aria-label={t("Toggle navigation")}
+          aria-label="Toggle navigation"
           className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200"
           onClick={() => setIsOpen(!isOpen)}
           type="button"
@@ -831,24 +880,22 @@ function MobileHeader({
 function Header({
   activeNav,
   language,
-  setLanguage,
-  workspace,
-  setWorkspace,
   onRunReport,
   reportRunning,
-  t
+  setLanguage,
+  setWorkspace,
+  t,
+  workspace
 }: {
   activeNav: NavKey;
   language: Lang;
-  setLanguage: (language: Lang) => void;
-  workspace: string;
-  setWorkspace: (workspace: string) => void;
   onRunReport: () => void;
   reportRunning: boolean;
+  setLanguage: (language: Lang) => void;
+  setWorkspace: (workspace: string) => void;
   t: Translate;
+  workspace: string;
 }) {
-  const [openMenu, setOpenMenu] = useState<"language" | "workspace" | null>(null);
-
   return (
     <header className="relative z-40 mt-5 flex flex-col gap-4 lg:mt-0 xl:flex-row xl:items-end xl:justify-between">
       <div>
@@ -861,82 +908,22 @@ function Header({
       </div>
 
       <div className="glass-panel relative z-40 flex flex-col gap-2 overflow-visible rounded-2xl p-3 sm:flex-row sm:items-center">
-        <div className="relative z-50">
-          <button
-            aria-expanded={openMenu === "language"}
-            className="flex h-14 min-w-36 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-left transition hover:bg-white/10"
-            onClick={() => setOpenMenu(openMenu === "language" ? null : "language")}
-            type="button"
-          >
-            <Globe2 className="h-4 w-4 shrink-0 text-cyan-100" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-medium text-slate-500">{t("Language")}</p>
-              <p className="text-sm font-semibold text-white">{languageOptions.find((option) => option.value === language)?.label}</p>
-            </div>
-            <ChevronDown className={clsx("h-4 w-4 text-slate-400 transition", openMenu === "language" && "rotate-180")} />
-          </button>
-
-          {openMenu === "language" ? (
-            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[100] w-full min-w-36 rounded-xl border border-cyan-300/20 bg-slate-950/95 p-1 shadow-glow backdrop-blur-xl">
-              {languageOptions.map((option) => (
-                <button
-                  className={clsx(
-                    "flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-semibold transition",
-                    language === option.value ? "bg-cyan-300 text-slate-950" : "text-slate-200 hover:bg-white/10"
-                  )}
-                  key={option.value}
-                  onClick={() => {
-                    setLanguage(option.value);
-                    setOpenMenu(null);
-                  }}
-                  type="button"
-                >
-                  {option.label}
-                  {language === option.value ? <CheckCircle2 className="h-4 w-4" /> : null}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="relative z-50">
-          <button
-            aria-expanded={openMenu === "workspace"}
-            className="flex h-14 min-w-56 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-left transition hover:bg-white/10"
-            onClick={() => setOpenMenu(openMenu === "workspace" ? null : "workspace")}
-            type="button"
-          >
-            <Building2 className="h-4 w-4 shrink-0 text-violet-100" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-medium text-slate-500">{t("Workspace")}</p>
-              <p className="truncate text-sm font-semibold text-white">{workspace}</p>
-            </div>
-            <ChevronDown className={clsx("h-4 w-4 text-slate-400 transition", openMenu === "workspace" && "rotate-180")} />
-          </button>
-
-          {openMenu === "workspace" ? (
-            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[100] w-full min-w-64 rounded-xl border border-violet-300/20 bg-slate-950/95 p-1 shadow-glow backdrop-blur-xl">
-              {workspaceOptions.map((option) => (
-                <button
-                  className={clsx(
-                    "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold transition",
-                    workspace === option ? "bg-violet-300 text-slate-950" : "text-slate-200 hover:bg-white/10"
-                  )}
-                  key={option}
-                  onClick={() => {
-                    setWorkspace(option);
-                    setOpenMenu(null);
-                  }}
-                  type="button"
-                >
-                  <span className="truncate">{option}</span>
-                  {workspace === option ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : null}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
+        <BubbleDropdown
+          icon={Globe2}
+          label={t("Language")}
+          onChange={setLanguage}
+          options={languageOptions}
+          value={language}
+          widthClass="min-w-36"
+        />
+        <BubbleDropdown
+          icon={Building2}
+          label={t("Workspace")}
+          onChange={setWorkspace}
+          options={workspaceOptions.map((option) => ({ value: option, label: option }))}
+          value={workspace}
+          widthClass="min-w-56"
+        />
         <button
           className="inline-flex h-14 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-5 text-sm font-semibold text-slate-950 transition hover:brightness-110"
           onClick={onRunReport}
@@ -947,6 +934,636 @@ function Header({
         </button>
       </div>
     </header>
+  );
+}
+
+function BubbleDropdown<T extends string>({
+  icon: Icon,
+  label,
+  onChange,
+  options,
+  value,
+  widthClass = "min-w-44",
+  valueClassName
+}: {
+  icon: LucideIcon;
+  label: string;
+  onChange: (value: T) => void;
+  options: Array<DropdownOption<T>>;
+  value: T;
+  widthClass?: string;
+  valueClassName?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value) ?? options[0];
+
+  return (
+    <div className={clsx("relative z-50", widthClass)}>
+      <button
+        aria-expanded={open}
+        className="flex h-14 w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-left transition hover:bg-white/10"
+        onClick={() => setOpen(!open)}
+        type="button"
+      >
+        <Icon className="h-4 w-4 shrink-0 text-cyan-100" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-medium text-slate-500">{label}</p>
+          <p className={clsx("truncate text-sm font-semibold text-white", valueClassName)}>{selected.label}</p>
+        </div>
+        <ChevronDown className={clsx("h-4 w-4 text-slate-400 transition", open && "rotate-180")} />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[100] w-full min-w-full rounded-xl border border-cyan-300/20 bg-slate-950/95 p-1 shadow-glow backdrop-blur-xl">
+          {options.map((option) => (
+            <button
+              className={clsx(
+                "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold transition",
+                value === option.value ? "bg-cyan-300 text-slate-950" : "text-slate-200 hover:bg-white/10"
+              )}
+              key={option.value}
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+              type="button"
+            >
+              <span className="truncate">{option.label}</span>
+              {value === option.value ? <CheckCircle2 className="h-4 w-4 shrink-0" /> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function DashboardPage({
+  activities,
+  metrics,
+  onClearActivities,
+  onGenerateTasks,
+  onOpenAnalytics,
+  onReviewRisks,
+  t
+}: {
+  activities: ActivityItem[];
+  metrics: Metric[];
+  onClearActivities: () => void;
+  onGenerateTasks: () => void;
+  onOpenAnalytics: () => void;
+  onReviewRisks: () => void;
+  t: Translate;
+}) {
+  const queueItems = [
+    ["Lead response SLA", "In progress", "14 min"],
+    ["Proposal follow-ups", "Complete", "32 sent"],
+    ["Client health review", "Needs review", "2 accounts"]
+  ];
+
+  return (
+    <section className="mt-6 space-y-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map((metric) => (
+          <MetricCard key={metric.label} metric={metric} t={t} />
+        ))}
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[1fr_0.8fr]">
+        <section className="glass-panel rounded-2xl p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-medium text-cyan-100">{t("Service Snapshot")}</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">{t("ClientFlow AI")}</h2>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10" onClick={onGenerateTasks} type="button">
+                {t("Generate outreach tasks")}
+              </button>
+              <button className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10" onClick={onReviewRisks} type="button">
+                {t("Review delivery risks")}
+              </button>
+              <button className="rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110" onClick={onOpenAnalytics} type="button">
+                {t("Open analytics")}
+              </button>
+            </div>
+          </div>
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            {[
+              ["Hot leads routed", "42", "+19%"],
+              ["Delivery risks", "2", "-31%"],
+              ["AI hours saved", "386", "+44%"]
+            ].map(([label, value, change]) => (
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4" key={label}>
+                <p className="text-sm text-slate-400">{t(label)}</p>
+                <div className="mt-4 flex items-end justify-between gap-3">
+                  <p className="text-2xl font-semibold text-white">{value}</p>
+                  <span className="rounded-full bg-emerald-300/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">{change}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="glass-panel rounded-2xl p-5">
+          <p className="text-sm font-medium text-violet-100">{t("Priority Queue")}</p>
+          <div className="mt-4 space-y-3">
+            {queueItems.map(([title, state, meta]) => (
+              <article className="rounded-xl border border-white/10 bg-white/[0.04] p-4" key={title}>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-white">{t(title)}</p>
+                  <span className="text-xs text-slate-500">{meta}</span>
+                </div>
+                <p className="mt-2 text-sm text-slate-400">{t(state)}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <ActivityPanel activities={activities} onClear={onClearActivities} t={t} />
+    </section>
+  );
+}
+
+function MetricCard({ metric, t }: { metric: Metric; t: Translate }) {
+  return (
+    <article className="glass-panel rounded-2xl p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm text-slate-400">{t(metric.label)}</p>
+          <p className="mt-3 text-2xl font-semibold text-white">{metric.value}</p>
+        </div>
+        <div className={clsx("flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br", toneMap[metric.tone])}>
+          <metric.icon className="h-5 w-5" />
+        </div>
+      </div>
+      <div className="mt-5 flex items-center justify-between">
+        <span className="rounded-full bg-emerald-300/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">{metric.change}</span>
+        <span className="text-xs text-slate-500">{t("vs last month")}</span>
+      </div>
+    </article>
+  );
+}
+
+function AnalyticsPage({
+  onExport,
+  onRefresh,
+  range,
+  segment,
+  setRange,
+  setSegment,
+  t
+}: {
+  onExport: () => void;
+  onRefresh: () => void;
+  range: keyof typeof chartSets;
+  segment: string;
+  setRange: (range: keyof typeof chartSets) => void;
+  setSegment: (segment: string) => void;
+  t: Translate;
+}) {
+  const chartPoints = pointsFrom(chartSets[range]);
+  const chartArea = `${chartPoints} 440,150 0,150`;
+
+  return (
+    <section className="mt-6 space-y-5">
+      <section className="glass-panel rounded-2xl p-5">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <div>
+            <p className="text-sm font-medium text-cyan-100">{t("Growth analytics")}</p>
+            <h2 className="mt-2 text-xl font-semibold text-white">{t(segment)}</h2>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <BubbleDropdown
+              icon={Clock3}
+              label={t("Date range")}
+              onChange={setRange}
+              options={(Object.keys(chartSets) as Array<keyof typeof chartSets>).map((item) => ({ value: item, label: item }))}
+              value={range}
+              widthClass="min-w-32"
+            />
+            <BubbleDropdown
+              icon={TrendingUp}
+              label={t("Segment")}
+              onChange={setSegment}
+              options={["Funnel", "Revenue", "Retention"].map((item) => ({ value: item, label: t(item) }))}
+              value={segment}
+              widthClass="min-w-40"
+            />
+            <button className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-100 transition hover:bg-white/10" onClick={onRefresh} type="button">
+              <RefreshCw className="h-4 w-4" />
+              {t("Refresh forecast")}
+            </button>
+            <button className="inline-flex h-14 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 text-sm font-semibold text-slate-950 transition hover:brightness-110" onClick={onExport} type="button">
+              <Download className="h-4 w-4" />
+              {t("Export CSV")}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 h-[360px] rounded-2xl border border-white/10 bg-slate-950/40 p-4">
+          <svg aria-label="ClientFlow growth chart" className="h-full w-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 440 150">
+            <defs>
+              <linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.34" />
+                <stop offset="65%" stopColor="#7c3aed" stopOpacity="0.08" />
+                <stop offset="100%" stopColor="#020617" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {[30, 60, 90, 120].map((y) => (
+              <line key={y} stroke="rgba(148, 163, 184, 0.16)" strokeWidth="1" x1="0" x2="440" y1={y} y2={y} />
+            ))}
+            <polygon fill="url(#areaGradient)" points={chartArea} />
+            <polyline fill="none" points={chartPoints} stroke="#22d3ee" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
+            <polyline fill="none" points={pointsFrom([128, 122, 112, 104, 86, 76, 64, 52, 42])} stroke="#8b5cf6" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" opacity="0.82" />
+          </svg>
+        </div>
+      </section>
+
+      <div className="grid gap-4 md:grid-cols-4">
+        {[
+          ["Pipeline Value", "$486K", "+22%"],
+          ["Win Rate", "38%", "+6%"],
+          ["Churn Risk", "7%", "-3%"],
+          ["Avg Response", "42m", "-18%"]
+        ].map(([label, value, change]) => (
+          <article className="glass-panel rounded-2xl p-5" key={label}>
+            <p className="text-sm text-slate-400">{t(label)}</p>
+            <p className="mt-3 text-2xl font-semibold text-white">{value}</p>
+            <p className="mt-3 text-xs font-semibold text-emerald-200">{change}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AutomationPage({
+  automations,
+  onOpenAssistant,
+  onRunAutomation,
+  setAutomations,
+  t
+}: {
+  automations: Automation[];
+  onOpenAssistant: () => void;
+  onRunAutomation: (id?: number) => void;
+  setAutomations: Dispatch<SetStateAction<Automation[]>>;
+  t: Translate;
+}) {
+  const promptCards = ["Lead qualification", "Proposal writer", "Client check-in"];
+
+  const toggleAutomation = (automation: Automation) => {
+    setAutomations((current) =>
+      current.map((item) =>
+        item.id === automation.id ? { ...item, state: item.state === "Paused" ? "Queued" : "Paused" } : item
+      )
+    );
+  };
+
+  return (
+    <section className="mt-6 grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+      <section className="glass-panel rounded-2xl p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-violet-100">{t("Automation Playbooks")}</p>
+            <h2 className="mt-2 text-xl font-semibold text-white">{t("Automation control")}</h2>
+          </div>
+          <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-4 py-3 text-sm font-semibold text-slate-950" onClick={onOpenAssistant} type="button">
+            <Bot className="h-4 w-4" />
+            {t("Open assistant")}
+          </button>
+        </div>
+
+        <div className="mt-5 space-y-3">
+          {automations.map((automation) => (
+            <article className="rounded-xl border border-white/10 bg-white/[0.04] p-4" key={automation.id}>
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="font-semibold text-white">{t(automation.name)}</p>
+                  <p className="mt-1 text-sm text-slate-500">{automation.owner} · {automation.runs.toLocaleString()} runs</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className={clsx("rounded-full border px-3 py-2 text-xs font-semibold", automation.state === "Running" ? statusStyle.Live : automation.state === "Queued" ? statusStyle.Training : statusStyle.Paused)}>
+                    {t(automation.state)}
+                  </span>
+                  <button className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 hover:bg-white/10" onClick={() => onRunAutomation(automation.id)} type="button">
+                    {t("Run playbook")}
+                  </button>
+                  <button className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm font-semibold text-slate-100 hover:bg-white/10" onClick={() => toggleAutomation(automation)} type="button">
+                    {automation.state === "Paused" ? t("Resume") : t("Pause")}
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="glass-panel rounded-2xl p-5">
+        <p className="text-sm font-medium text-cyan-100">{t("Prompt Library")}</p>
+        <div className="mt-5 grid gap-3">
+          {promptCards.map((prompt) => (
+            <button className="rounded-xl border border-white/10 bg-white/[0.04] p-4 text-left transition hover:bg-white/10" key={prompt} onClick={onOpenAssistant} type="button">
+              <p className="font-semibold text-white">{t(prompt)}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-400">{t("Open assistant")}</p>
+            </button>
+          ))}
+        </div>
+      </section>
+    </section>
+  );
+}
+
+function ProjectsPage({
+  addActivity,
+  projects,
+  setProjects,
+  t
+}: {
+  addActivity: (item: Omit<ActivityItem, "id" | "timeKey">) => void;
+  projects: Project[];
+  setProjects: Dispatch<SetStateAction<Project[]>>;
+  t: Translate;
+}) {
+  const [query, setQuery] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [draft, setDraft] = useState({ name: "", client: "Acme Growth Cloud", category: "Lead Gen" as ProjectCategory });
+
+  const filteredProjects = useMemo(() => {
+    const cleanQuery = query.trim().toLowerCase();
+    if (!cleanQuery) {
+      return projects;
+    }
+    return projects.filter((project) =>
+      [project.name, project.client, project.category, project.status].some((value) => value.toLowerCase().includes(cleanQuery))
+    );
+  }, [projects, query]);
+
+  const addProject = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!draft.name.trim()) {
+      return;
+    }
+    const project: Project = {
+      id: Date.now(),
+      name: draft.name.trim(),
+      client: draft.client,
+      category: draft.category,
+      status: "Training",
+      progress: 35,
+      updated: "Just now"
+    };
+    setProjects((current) => [project, ...current]);
+    setDraft({ name: "", client: "Acme Growth Cloud", category: "Lead Gen" });
+    setIsAdding(false);
+    addActivity({
+      titleKey: "New Project",
+      detailKey: "{workspace} preferences were updated.",
+      values: { workspace: project.name },
+      tone: "emerald"
+    });
+  };
+
+  const updateProject = (id: number, updates: Partial<Project>) => {
+    setProjects((current) => current.map((project) => (project.id === id ? { ...project, ...updates, updated: "Just now" } : project)));
+  };
+
+  const deleteProject = (project: Project) => {
+    setProjects((current) => current.filter((item) => item.id !== project.id));
+    addActivity({
+      titleKey: "Delete",
+      detailKey: "{workspace} preferences were updated.",
+      values: { workspace: project.name },
+      tone: "amber"
+    });
+  };
+
+  return (
+    <section className="mt-6 glass-panel rounded-2xl p-5">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <p className="text-sm font-medium text-cyan-100">{t("Projects")}</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{t("Client delivery projects")}</h2>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <label className="flex h-14 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3">
+            <Search className="h-4 w-4 text-slate-500" />
+            <input
+              className="min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t("Search projects")}
+              value={query}
+            />
+          </label>
+          <button className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 text-sm font-semibold text-slate-100 transition hover:bg-white/10" onClick={() => setIsAdding(!isAdding)} type="button">
+            <Plus className="h-4 w-4" />
+            {t("New Project")}
+          </button>
+        </div>
+      </div>
+
+      {isAdding ? (
+        <form className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 lg:grid-cols-[1fr_220px_220px_auto]" onSubmit={addProject}>
+          <input
+            className="h-14 rounded-xl border border-white/10 bg-slate-950/50 px-4 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/40"
+            onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
+            placeholder={t("Project name")}
+            value={draft.name}
+          />
+          <BubbleDropdown
+            icon={Building2}
+            label={t("Client")}
+            onChange={(client) => setDraft((current) => ({ ...current, client }))}
+            options={workspaceOptions.map((option) => ({ value: option, label: option }))}
+            value={draft.client}
+            widthClass="min-w-full"
+          />
+          <BubbleDropdown
+            icon={BriefcaseBusiness}
+            label={t("Category")}
+            onChange={(category) => setDraft((current) => ({ ...current, category }))}
+            options={projectCategories.map((category) => ({ value: category, label: t(category) }))}
+            value={draft.category}
+            widthClass="min-w-full"
+          />
+          <button className="h-14 rounded-xl bg-cyan-300 px-4 text-sm font-semibold text-slate-950" type="submit">
+            {t("Add")}
+          </button>
+        </form>
+      ) : null}
+
+      <div className="mt-5 overflow-x-auto">
+        <table className="w-full min-w-[900px] border-separate border-spacing-y-2 text-left">
+          <thead>
+            <tr className="text-xs uppercase text-slate-500">
+              <th className="px-3 py-2 font-medium">{t("Project name")}</th>
+              <th className="px-3 py-2 font-medium">{t("Client")}</th>
+              <th className="px-3 py-2 font-medium">{t("Category")}</th>
+              <th className="px-3 py-2 font-medium">{t("Status")}</th>
+              <th className="px-3 py-2 font-medium">{t("Progress")}</th>
+              <th className="px-3 py-2 font-medium">{t("Actions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProjects.map((project) => (
+              <tr className="bg-white/[0.035] text-sm" key={project.id}>
+                <td className="rounded-l-xl border-y border-l border-white/10 px-3 py-4">
+                  <p className="font-semibold text-white">{project.name}</p>
+                  <p className="mt-1 text-xs text-slate-500">{t(project.updated)}</p>
+                </td>
+                <td className="border-y border-white/10 px-3 py-4 text-slate-300">{project.client}</td>
+                <td className="border-y border-white/10 px-3 py-4 text-slate-300">{t(project.category)}</td>
+                <td className="border-y border-white/10 px-3 py-4">
+                  <BubbleDropdown
+                    icon={Activity}
+                    label={t("Status")}
+                    onChange={(status) => updateProject(project.id, { status })}
+                    options={projectStatuses.map((status) => ({ value: status, label: t(status) }))}
+                    value={project.status}
+                    widthClass="min-w-40"
+                  />
+                </td>
+                <td className="border-y border-white/10 px-3 py-4">
+                  <div className="flex items-center gap-3">
+                    <input
+                      className="w-28 accent-cyan-300"
+                      max="100"
+                      min="0"
+                      onChange={(event) => updateProject(project.id, { progress: Number(event.target.value) })}
+                      type="range"
+                      value={project.progress}
+                    />
+                    <span className="w-9 text-xs text-slate-300">{project.progress}%</span>
+                  </div>
+                </td>
+                <td className="rounded-r-xl border-y border-r border-white/10 px-3 py-4">
+                  <button className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:border-rose-300/30 hover:bg-rose-300/10 hover:text-rose-100" onClick={() => deleteProject(project)} type="button">
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function SettingsPage({
+  autoAssign,
+  dataRegion,
+  emailAlerts,
+  modelRoute,
+  onSave,
+  saved,
+  setAutoAssign,
+  setDataRegion,
+  setEmailAlerts,
+  setModelRoute,
+  setWeeklyReports,
+  t,
+  weeklyReports
+}: {
+  autoAssign: boolean;
+  dataRegion: string;
+  emailAlerts: boolean;
+  modelRoute: string;
+  onSave: () => void;
+  saved: boolean;
+  setAutoAssign: (value: boolean) => void;
+  setDataRegion: (value: string) => void;
+  setEmailAlerts: (value: boolean) => void;
+  setModelRoute: (value: string) => void;
+  setWeeklyReports: (value: boolean) => void;
+  t: Translate;
+  weeklyReports: boolean;
+}) {
+  return (
+    <section className="mt-6 glass-panel rounded-2xl p-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-cyan-100">{t("Settings")}</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{t("Workspace controls")}</h2>
+        </div>
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-100">
+          <ShieldCheck className="h-5 w-5" />
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <BubbleDropdown
+          icon={BrainCircuit}
+          label={t("AI model route")}
+          onChange={setModelRoute}
+          options={modelOptions.map((option) => ({ value: option, label: t(option) }))}
+          value={modelRoute}
+          widthClass="min-w-full"
+        />
+        <BubbleDropdown
+          icon={Globe2}
+          label={t("Data region")}
+          onChange={setDataRegion}
+          options={dataRegionOptions.map((option) => ({ value: option, label: t(option) }))}
+          value={dataRegion}
+          widthClass="min-w-full"
+        />
+        <Toggle label={t("Email alerts")} icon={Bell} checked={emailAlerts} onChange={setEmailAlerts} />
+        <Toggle label={t("Weekly client reports")} icon={Activity} checked={weeklyReports} onChange={setWeeklyReports} />
+        <Toggle label={t("Auto-assign hot leads")} icon={Zap} checked={autoAssign} onChange={setAutoAssign} />
+      </div>
+
+      <button className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110" onClick={onSave} type="button">
+        <Save className="h-4 w-4" />
+        {saved ? t("Saved") : t("Save Settings")}
+      </button>
+    </section>
+  );
+}
+
+function ActivityPanel({
+  activities,
+  onClear,
+  t
+}: {
+  activities: ActivityItem[];
+  onClear: () => void;
+  t: Translate;
+}) {
+  return (
+    <section className="glass-panel rounded-2xl p-5">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-violet-100">{t("Recent Activity")}</p>
+          <h2 className="mt-2 text-xl font-semibold text-white">{t("Operations feed")}</h2>
+        </div>
+        <button className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10" onClick={onClear} type="button">
+          {t("Clear")}
+        </button>
+      </div>
+
+      <div className="mt-5 space-y-3">
+        {activities.length === 0 ? (
+          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">{t("No recent activity.")}</div>
+        ) : (
+          activities.map((item) => (
+            <article className="rounded-xl border border-white/10 bg-white/[0.035] p-4" key={item.id}>
+              <div className="flex items-start gap-3">
+                <span className={clsx("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", activityTone[item.tone])} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 text-sm font-semibold leading-6 text-white">{t(item.titleKey)}</p>
+                    <p className="shrink-0 whitespace-nowrap text-xs leading-6 text-slate-500">{t(item.timeKey)}</p>
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-slate-400">{t(item.detailKey, item.values)}</p>
+                </div>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -1000,12 +1617,7 @@ function ReportPanel({
           <p className="mt-2 text-sm leading-6 text-slate-400">{t("Report generated for {workspace}", { workspace })}</p>
         </div>
 
-        <button
-          aria-label={t("Close report")}
-          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white lg:static"
-          onClick={onClose}
-          type="button"
-        >
+        <button aria-label={t("Close report")} className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white lg:static" onClick={onClose} type="button">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -1023,27 +1635,15 @@ function ReportPanel({
       </div>
 
       <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-        <button
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-          onClick={onViewAnalytics}
-          type="button"
-        >
+        <button className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10" onClick={onViewAnalytics} type="button">
           <BarChart3 className="h-4 w-4" />
           {t("View Analytics")}
         </button>
-        <button
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-300/20 bg-violet-300/10 px-4 py-3 text-sm font-semibold text-violet-100 transition hover:bg-violet-300/15"
-          onClick={onQueueWorkflow}
-          type="button"
-        >
+        <button className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-300/20 bg-violet-300/10 px-4 py-3 text-sm font-semibold text-violet-100 transition hover:bg-violet-300/15" onClick={onQueueWorkflow} type="button">
           <Play className="h-4 w-4" />
           {t("Queue Workflow")}
         </button>
-        <button
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110"
-          onClick={onExport}
-          type="button"
-        >
+        <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110" onClick={onExport} type="button">
           <ArrowUpRight className="h-4 w-4" />
           {t("Export Report CSV")}
         </button>
@@ -1052,148 +1652,31 @@ function ReportPanel({
   );
 }
 
-function MetricCard({ metric, t }: { metric: Metric; t: Translate }) {
+function AssistantBubble({ onClick, t }: { onClick: () => void; t: Translate }) {
   return (
-    <article className="glass-panel rounded-2xl p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-sm text-slate-400">{t(metric.label)}</p>
-          <p className="mt-3 text-2xl font-semibold text-white">{metric.value}</p>
-        </div>
-        <div className={clsx("flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br", toneMap[metric.tone])}>
-          <metric.icon className="h-5 w-5" />
-        </div>
-      </div>
-      <div className="mt-5 flex items-center justify-between">
-        <span className="rounded-full bg-emerald-300/10 px-2.5 py-1 text-xs font-semibold text-emerald-200">
-          {metric.change}
-        </span>
-        <span className="text-xs text-slate-500">{t("vs last month")}</span>
-      </div>
-    </article>
+    <button
+      aria-label={t("Open assistant")}
+      className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-cyan-300/25 bg-slate-950/95 text-cyan-100 shadow-glow transition hover:scale-105 hover:bg-cyan-300/10"
+      onClick={onClick}
+      type="button"
+    >
+      <Bot className="h-6 w-6" />
+    </button>
   );
 }
 
-function AnalyticsPanel({
-  range,
-  setRange,
-  onExport,
-  t,
-  compact = false
-}: {
-  range: keyof typeof chartSets;
-  setRange: (range: keyof typeof chartSets) => void;
-  onExport: () => void;
-  t: Translate;
-  compact?: boolean;
-}) {
-  const chartPoints = pointsFrom(chartSets[range]);
-  const chartArea = `${chartPoints} 440,150 0,150`;
-
-  return (
-    <section className="glass-panel rounded-2xl p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-cyan-100">{t("Analytics Section")}</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{t("AI request growth")}</h2>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {(Object.keys(chartSets) as Array<keyof typeof chartSets>).map((item) => (
-            <button
-              className={clsx(
-                "rounded-xl border px-3 py-2 text-xs font-semibold transition",
-                range === item ? "border-cyan-300/30 bg-cyan-300/10 text-cyan-100" : "border-white/10 bg-white/5 text-slate-300"
-              )}
-              key={item}
-              onClick={() => setRange(item)}
-              type="button"
-            >
-              {item}
-            </button>
-          ))}
-          <button
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-100 transition hover:bg-white/10"
-            onClick={onExport}
-            type="button"
-          >
-            {t("Export CSV")}
-          </button>
-        </div>
-      </div>
-
-      <div className={clsx("mt-6 rounded-2xl border border-white/10 bg-slate-950/40 p-4", compact ? "h-72" : "h-[360px]")}>
-        <svg
-          aria-label="Simulated AI request line chart"
-          className="h-full w-full overflow-visible"
-          preserveAspectRatio="none"
-          viewBox="0 0 440 150"
-        >
-          <defs>
-            <linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.34" />
-              <stop offset="65%" stopColor="#7c3aed" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#020617" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[30, 60, 90, 120].map((y) => (
-            <line key={y} stroke="rgba(148, 163, 184, 0.16)" strokeWidth="1" x1="0" x2="440" y1={y} y2={y} />
-          ))}
-          <polygon fill="url(#areaGradient)" points={chartArea} />
-          <polyline
-            fill="none"
-            points={chartPoints}
-            stroke="#22d3ee"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="4"
-          />
-          <polyline
-            fill="none"
-            points={pointsFrom([128, 122, 112, 104, 86, 76, 64, 52, 42])}
-            stroke="#8b5cf6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="3"
-            opacity="0.82"
-          />
-        </svg>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {[
-          ["Automation runs", range === "7D" ? "12,480" : range === "30D" ? "44,120" : "129,840", "+22%"],
-          ["Active agents", "186", "+14%"],
-          ["Saved hours", range === "90D" ? "11,760" : "3,920", "+37%"]
-        ].map(([label, value, change]) => (
-          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4" key={label}>
-            <p className="text-sm text-slate-400">{t(label)}</p>
-            <div className="mt-3 flex items-end justify-between gap-3">
-              <p className="text-xl font-semibold text-white">{value}</p>
-              <p className="text-xs font-semibold text-emerald-200">{change}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function AssistantPanel({
-  messages,
-  setMessages,
-  workflow,
-  onRunAutomation,
+function AssistantWindow({
   addActivity,
-  t,
-  compact = false
+  messages,
+  onClose,
+  setMessages,
+  t
 }: {
-  messages: Message[];
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
-  workflow: WorkflowStep[];
-  onRunAutomation: () => void;
   addActivity: (item: Omit<ActivityItem, "id" | "timeKey">) => void;
+  messages: Message[];
+  onClose: () => void;
+  setMessages: Dispatch<SetStateAction<Message[]>>;
   t: Translate;
-  compact?: boolean;
 }) {
   const [prompt, setPrompt] = useState("");
 
@@ -1207,426 +1690,62 @@ function AssistantPanel({
     setMessages((current) => [
       ...current,
       { id: nextId, role: "User", body: cleanPrompt },
-      {
-        id: nextId + 1,
-        role: "AI",
-        body: "I found 3 priority segments, queued a follow-up workflow, and updated the project risk score."
-      }
+      { id: nextId + 1, role: "AI", body: "I routed this to the right workflow and added an activity note." }
     ]);
     setPrompt("");
     addActivity({
-      titleKey: "Assistant response created",
-      detailKey: "A new AI recommendation was added to the workspace thread.",
+      titleKey: "AI Assistant",
+      detailKey: "I routed this to the right workflow and added an activity note.",
       tone: "violet"
     });
   };
 
   return (
-    <section className="glass-panel rounded-2xl p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-violet-100">{t("AI Assistant Panel")}</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{t("Task command queue")}</h2>
-        </div>
-        <button
-          className="inline-flex items-center gap-2 rounded-xl border border-violet-300/20 bg-violet-300/10 px-3 py-2 text-sm font-semibold text-violet-100 transition hover:bg-violet-300/15"
-          onClick={onRunAutomation}
-          type="button"
-        >
-          <Play className="h-4 w-4" />
-          {t("Run")}
-        </button>
-      </div>
-
-      <div className={clsx("mt-6 space-y-3 overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/50 p-4", compact ? "max-h-56" : "max-h-[420px]")}>
-        {messages.map((message) => (
-          <div
-            className={clsx(
-              "rounded-xl border px-4 py-3 text-sm leading-6",
-              message.role === "AI"
-                ? "border-cyan-300/18 bg-cyan-300/8 text-cyan-50"
-                : "ml-auto max-w-[88%] border-violet-300/18 bg-violet-300/10 text-violet-50"
-            )}
-            key={message.id}
-          >
-            <p className="mb-1 text-xs font-semibold text-slate-400">{t(message.role)}</p>
-            {t(message.body)}
-          </div>
-        ))}
-      </div>
-
-      <form className="mt-4 flex gap-2" onSubmit={sendMessage}>
-        <input
-          className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40"
-          onChange={(event) => setPrompt(event.target.value)}
-          placeholder={t("Ask about churn, revenue, or automation...")}
-          value={prompt}
-        />
-        <button
-          aria-label="Send message"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 text-slate-950 transition hover:brightness-110"
-          type="submit"
-        >
-          <Send className="h-4 w-4" />
-        </button>
-      </form>
-
-      <div className="mt-5 space-y-4">
-        {workflow.map((step, index) => (
-          <div className="flex gap-3" key={step.label}>
-            <div className="flex flex-col items-center">
-              <div
-                className={clsx(
-                  "flex h-8 w-8 items-center justify-center rounded-full border",
-                  step.state === "Done" && "border-emerald-300/40 bg-emerald-300/10 text-emerald-200",
-                  step.state === "Running" && "border-cyan-300/40 bg-cyan-300/10 text-cyan-100",
-                  step.state === "Queued" && "border-slate-500/40 bg-slate-500/10 text-slate-300"
-                )}
-              >
-                {step.state === "Done" ? (
-                  <CheckCircle2 className="h-4 w-4" />
-                ) : step.state === "Running" ? (
-                  <DatabaseZap className="h-4 w-4" />
-                ) : (
-                  <Clock3 className="h-4 w-4" />
-                )}
-              </div>
-              {index < workflow.length - 1 ? <div className="mt-2 h-10 w-px bg-white/10" /> : null}
+    <div className="fixed bottom-24 right-5 z-50 w-[min(420px,calc(100vw-2rem))]">
+      <section className="glass-panel rounded-2xl p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-300/20 bg-cyan-300/10 text-cyan-100">
+              <Bot className="h-5 w-5" />
             </div>
-            <div className="min-w-0 pb-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold text-white">{t(step.label)}</p>
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-slate-300">
-                  {t(step.state)}
-                </span>
-              </div>
-              <p className="mt-1 text-sm leading-6 text-slate-400">{t(step.description)}</p>
+            <div>
+              <p className="text-sm font-semibold text-white">{t("AI Assistant")}</p>
+              <p className="text-xs text-slate-500">{t("ClientFlow AI")}</p>
             </div>
           </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function ProjectsTable({
-  projects,
-  setProjects,
-  addActivity,
-  t,
-  compact = false
-}: {
-  projects: Project[];
-  setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
-  addActivity: (item: Omit<ActivityItem, "id" | "timeKey">) => void;
-  t: Translate;
-  compact?: boolean;
-}) {
-  const [query, setQuery] = useState("");
-  const [isAdding, setIsAdding] = useState(!compact);
-  const [draft, setDraft] = useState({ name: "", category: "Automation", progress: 50 });
-
-  const filteredProjects = useMemo(() => {
-    const cleanQuery = query.trim().toLowerCase();
-    if (!cleanQuery) {
-      return projects;
-    }
-    return projects.filter((project) =>
-      [project.name, project.category, project.status].some((value) => value.toLowerCase().includes(cleanQuery))
-    );
-  }, [projects, query]);
-
-  const addProject = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const name = draft.name.trim();
-    if (!name) {
-      return;
-    }
-    const project: Project = {
-      id: Date.now(),
-      name,
-      category: draft.category,
-      status: "Training",
-      progress: draft.progress,
-      updated: "Just now"
-    };
-    setProjects((current) => [project, ...current]);
-    setDraft({ name: "", category: "Automation", progress: 50 });
-    setIsAdding(false);
-    addActivity({
-      titleKey: "Project created",
-      detailKey: "{name} was added to the AI product pipeline.",
-      values: { name: project.name },
-      tone: "emerald"
-    });
-  };
-
-  const updateProject = (id: number, updates: Partial<Project>) => {
-    setProjects((current) => current.map((project) => (project.id === id ? { ...project, ...updates, updated: "Just now" } : project)));
-  };
-
-  const deleteProject = (project: Project) => {
-    setProjects((current) => current.filter((item) => item.id !== project.id));
-    addActivity({
-      titleKey: "Project removed",
-      detailKey: "{name} was removed from the dashboard.",
-      values: { name: project.name },
-      tone: "amber"
-    });
-  };
-
-  return (
-    <section className="glass-panel rounded-2xl p-5">
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        <div>
-          <p className="text-sm font-medium text-cyan-100">{t("Projects")}</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{t("AI product pipeline")}</h2>
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
-            <Search className="h-4 w-4 text-slate-500" />
-            <input
-              className="min-w-0 bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t("Search projects")}
-              value={query}
-            />
-          </label>
-          <button
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
-            onClick={() => setIsAdding((current) => !current)}
-            type="button"
-          >
-            <Plus className="h-4 w-4" />
-            {t("New Project")}
+          <button aria-label={t("Close assistant")} className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 hover:bg-white/10" onClick={onClose} type="button">
+            <X className="h-4 w-4" />
           </button>
         </div>
-      </div>
 
-      {isAdding ? (
-        <form className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 md:grid-cols-[1fr_180px_180px_auto]" onSubmit={addProject}>
+        <div className="mt-4 max-h-80 space-y-3 overflow-y-auto rounded-2xl border border-white/10 bg-slate-950/50 p-3">
+          {messages.map((message) => (
+            <div
+              className={clsx(
+                "rounded-xl border px-4 py-3 text-sm leading-6",
+                message.role === "AI" ? "border-cyan-300/18 bg-cyan-300/8 text-cyan-50" : "ml-auto max-w-[88%] border-violet-300/18 bg-violet-300/10 text-violet-50"
+              )}
+              key={message.id}
+            >
+              <p className="mb-1 text-xs font-semibold text-slate-400">{t(message.role)}</p>
+              {t(message.body)}
+            </div>
+          ))}
+        </div>
+
+        <form className="mt-3 flex gap-2" onSubmit={sendMessage}>
           <input
-            className="rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/40"
-            onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-            placeholder={t("Project name")}
-            value={draft.name}
+            className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/40"
+            onChange={(event) => setPrompt(event.target.value)}
+            placeholder={t("Ask ClientFlow about leads, projects, or churn...")}
+            value={prompt}
           />
-          <select
-            className="rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
-            onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
-            value={draft.category}
-          >
-            {["Automation", "Analytics", "Sales AI", "Customer Ops"].map((category) => (
-              <option key={category} value={category}>
-                {t(category)}
-              </option>
-            ))}
-          </select>
-          <input
-            className="rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
-            max="100"
-            min="0"
-            onChange={(event) => setDraft((current) => ({ ...current, progress: Number(event.target.value) }))}
-            type="number"
-            value={draft.progress}
-          />
-          <button className="rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950" type="submit">
-            {t("Add")}
+          <button aria-label={t("Send message")} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 text-slate-950 transition hover:brightness-110" type="submit">
+            <Send className="h-4 w-4" />
           </button>
         </form>
-      ) : null}
-
-      <div className="mt-5 overflow-x-auto">
-        <table className="w-full min-w-[760px] border-separate border-spacing-y-2 text-left">
-          <thead>
-            <tr className="text-xs uppercase text-slate-500">
-              <th className="px-3 py-2 font-medium">{t("Project name")}</th>
-              <th className="px-3 py-2 font-medium">{t("Status")}</th>
-              <th className="px-3 py-2 font-medium">{t("Progress")}</th>
-              <th className="px-3 py-2 font-medium">{t("Last updated")}</th>
-              <th className="px-3 py-2 font-medium">{t("Actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredProjects.map((project) => (
-              <tr className="bg-white/[0.035] text-sm" key={project.id}>
-                <td className="rounded-l-xl border-y border-l border-white/10 px-3 py-4">
-                  <p className="font-semibold text-white">{project.name}</p>
-                  <p className="mt-1 text-xs text-slate-500">{t(project.category)}</p>
-                </td>
-                <td className="border-y border-white/10 px-3 py-4">
-                  <select
-                    className={clsx("rounded-full border px-2.5 py-1 text-xs font-medium outline-none", statusStyle[project.status])}
-                    onChange={(event) => updateProject(project.id, { status: event.target.value as Project["status"] })}
-                    value={project.status}
-                  >
-                    {["Live", "Training", "Review", "Paused"].map((status) => (
-                      <option key={status} value={status}>
-                        {t(status)}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="border-y border-white/10 px-3 py-4">
-                  <div className="flex items-center gap-3">
-                    <input
-                      className="w-28 accent-cyan-300"
-                      max="100"
-                      min="0"
-                      onChange={(event) => updateProject(project.id, { progress: Number(event.target.value) })}
-                      type="range"
-                      value={project.progress}
-                    />
-                    <span className="w-9 text-xs text-slate-300">{project.progress}%</span>
-                  </div>
-                </td>
-                <td className="border-y border-white/10 px-3 py-4 text-slate-400">{t(project.updated)}</td>
-                <td className="rounded-r-xl border-y border-r border-white/10 px-3 py-4">
-                  <button
-                    aria-label={`${t("Delete")} ${project.name}`}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-slate-300 transition hover:border-rose-300/30 hover:bg-rose-300/10 hover:text-rose-100"
-                    onClick={() => deleteProject(project)}
-                    type="button"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-function ActivityPanel({
-  activities,
-  onClear,
-  t
-}: {
-  activities: ActivityItem[];
-  onClear: () => void;
-  t: Translate;
-}) {
-  return (
-    <section className="glass-panel rounded-2xl p-5">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-violet-100">{t("Recent Activity")}</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{t("Operations feed")}</h2>
-        </div>
-        <button
-          className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10"
-          onClick={onClear}
-          type="button"
-        >
-          {t("Clear")}
-        </button>
-      </div>
-
-      <div className="mt-5 space-y-3">
-        {activities.length === 0 ? (
-          <div className="rounded-xl border border-white/10 bg-white/[0.035] p-4 text-sm text-slate-400">{t("No recent activity.")}</div>
-        ) : (
-          activities.map((item) => (
-            <article className="rounded-xl border border-white/10 bg-white/[0.035] p-4" key={item.id}>
-              <div className="flex items-start gap-3">
-                <span className={clsx("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", activityTone[item.tone])} />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="min-w-0 text-sm font-semibold leading-6 text-white">{t(item.titleKey)}</p>
-                    <p className="shrink-0 whitespace-nowrap text-xs leading-6 text-slate-500">{t(item.timeKey)}</p>
-                  </div>
-                  <p className="mt-1 text-sm leading-6 text-slate-400">{t(item.detailKey, item.values)}</p>
-                </div>
-              </div>
-            </article>
-          ))
-        )}
-      </div>
-    </section>
-  );
-}
-
-function SettingsPanel({
-  workspace,
-  setWorkspace,
-  addActivity,
-  t
-}: {
-  workspace: string;
-  setWorkspace: (workspace: string) => void;
-  addActivity: (item: Omit<ActivityItem, "id" | "timeKey">) => void;
-  t: Translate;
-}) {
-  const [draftWorkspace, setDraftWorkspace] = useState(workspace);
-  const [emailAlerts, setEmailAlerts] = useState(true);
-  const [autoReports, setAutoReports] = useState(true);
-  const [model, setModel] = useState("GPT-5 Automation");
-
-  const saveSettings = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setWorkspace(draftWorkspace.trim() || workspace);
-    addActivity({
-      titleKey: "Settings saved",
-      detailKey: "{name} preferences were updated.",
-      values: { name: draftWorkspace.trim() || workspace },
-      tone: "emerald"
-    });
-  };
-
-  return (
-    <section className="glass-panel rounded-2xl p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-cyan-100">{t("Settings")}</p>
-          <h2 className="mt-2 text-xl font-semibold text-white">{t("Workspace controls")}</h2>
-        </div>
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-300/20 bg-emerald-300/10 text-emerald-100">
-          <ShieldCheck className="h-5 w-5" />
-        </div>
-      </div>
-
-      <form className="mt-6 grid gap-4 lg:grid-cols-2" onSubmit={saveSettings}>
-        <label className="space-y-2">
-          <span className="text-sm font-medium text-slate-300">{t("Workspace name")}</span>
-          <input
-            className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
-            onChange={(event) => setDraftWorkspace(event.target.value)}
-            value={draftWorkspace}
-          />
-        </label>
-
-        <label className="space-y-2">
-          <span className="text-sm font-medium text-slate-300">{t("AI model route")}</span>
-          <select
-            className="w-full rounded-xl border border-white/10 bg-slate-950/50 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
-            onChange={(event) => setModel(event.target.value)}
-            value={model}
-          >
-            {["GPT-5 Automation", "Fast Support Copilot", "Analytics Reasoner"].map((route) => (
-              <option key={route} value={route}>
-                {t(route)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <Toggle label={t("Email alerts")} icon={Bell} checked={emailAlerts} onChange={setEmailAlerts} />
-        <Toggle label={t("Auto reports")} icon={Activity} checked={autoReports} onChange={setAutoReports} />
-
-        <div className="lg:col-span-2">
-          <button
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110"
-            type="submit"
-          >
-            <Save className="h-4 w-4" />
-            {t("Save Settings")}
-          </button>
-        </div>
-      </form>
-    </section>
+      </section>
+    </div>
   );
 }
 
@@ -1649,19 +1768,11 @@ function Toggle({
       </span>
       <button
         aria-pressed={checked}
-        className={clsx(
-          "relative h-7 w-12 rounded-full border transition",
-          checked ? "border-cyan-300/40 bg-cyan-300/30" : "border-white/10 bg-slate-800"
-        )}
+        className={clsx("relative h-7 w-12 rounded-full border transition", checked ? "border-cyan-300/40 bg-cyan-300/30" : "border-white/10 bg-slate-800")}
         onClick={() => onChange(!checked)}
         type="button"
       >
-        <span
-          className={clsx(
-            "absolute top-1 h-5 w-5 rounded-full bg-white transition",
-            checked ? "left-6" : "left-1"
-          )}
-        />
+        <span className={clsx("absolute top-1 h-5 w-5 rounded-full bg-white transition", checked ? "left-6" : "left-1")} />
       </button>
     </label>
   );
