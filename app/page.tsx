@@ -176,6 +176,19 @@ const translations: Record<Lang, Record<string, string>> = {
     "Select workspace": "選擇工作區",
     Workspace: "工作區",
     "Run AI Report": "產生 AI 報告",
+    "Generating Report": "產生中...",
+    "AI Report Ready": "AI 報告已就緒",
+    "Report generated for {workspace}": "{workspace} 的報告已產生",
+    Opportunity: "機會",
+    Risk: "風險",
+    "Next action": "下一步",
+    "Revenue is up 12.8% with strongest growth from automation-heavy teams.": "營收上升 12.8%，成長主要來自高度使用自動化的團隊。",
+    "Trial accounts with low AI usage show the highest churn probability this week.": "本週 AI 使用量偏低的試用帳戶流失機率最高。",
+    "Queue a customer success workflow and review the 30D analytics trend.": "排入客戶成功工作流，並檢視 30D 分析趨勢。",
+    "View Analytics": "查看分析",
+    "Queue Workflow": "排入流程",
+    "Export Report CSV": "匯出報告 CSV",
+    "Close report": "關閉報告",
     "Dashboard Overview": "儀表板總覽",
     "Monitor product growth, AI request volume, automation health, and active SaaS projects from one control center.": "從同一個控制中心監控產品成長、AI 請求量、自動化健康度和進行中的 SaaS 專案。",
     "Explore usage, revenue, request quality, and operational performance across the AI platform.": "探索 AI 平台的使用量、營收、請求品質與營運表現。",
@@ -295,6 +308,19 @@ const translations: Record<Lang, Record<string, string>> = {
     "Select workspace": "选择工作区",
     Workspace: "工作区",
     "Run AI Report": "生成 AI 报告",
+    "Generating Report": "生成中...",
+    "AI Report Ready": "AI 报告已就绪",
+    "Report generated for {workspace}": "{workspace} 的报告已生成",
+    Opportunity: "机会",
+    Risk: "风险",
+    "Next action": "下一步",
+    "Revenue is up 12.8% with strongest growth from automation-heavy teams.": "收入上升 12.8%，增长主要来自高度使用自动化的团队。",
+    "Trial accounts with low AI usage show the highest churn probability this week.": "本周 AI 使用量偏低的试用账户流失概率最高。",
+    "Queue a customer success workflow and review the 30D analytics trend.": "排入客户成功工作流，并查看 30D 分析趋势。",
+    "View Analytics": "查看分析",
+    "Queue Workflow": "排入流程",
+    "Export Report CSV": "导出报告 CSV",
+    "Close report": "关闭报告",
     "Dashboard Overview": "仪表盘总览",
     "Monitor product growth, AI request volume, automation health, and active SaaS projects from one control center.": "从同一个控制中心监控产品增长、AI 请求量、自动化健康度和进行中的 SaaS 项目。",
     "Explore usage, revenue, request quality, and operational performance across the AI platform.": "探索 AI 平台的使用量、收入、请求质量与运营表现。",
@@ -463,6 +489,8 @@ export default function Home() {
   const [messages, setMessages] = useState(initialMessages);
   const [workspace, setWorkspace] = useState("Acme Growth Cloud");
   const [range, setRange] = useState<keyof typeof chartSets>("7D");
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportRunning, setReportRunning] = useState(false);
   const t: Translate = (key, values) => {
     const template = translations[language][key] ?? key;
     return Object.entries(values ?? {}).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, value), template);
@@ -473,6 +501,8 @@ export default function Home() {
   };
 
   const runReport = () => {
+    setReportOpen(true);
+    setReportRunning(true);
     setMetrics((current) =>
       current.map((metric) =>
         metric.label === "AI Requests" ? { ...metric, value: "1.86M", change: "+33.9%" } : metric
@@ -483,6 +513,7 @@ export default function Home() {
       detailKey: "Executive summary, churn signals, and revenue notes are ready.",
       tone: "cyan"
     });
+    window.setTimeout(() => setReportRunning(false), 650);
   };
 
   const runAutomation = () => {
@@ -623,8 +654,20 @@ export default function Home() {
             workspace={workspace}
             setWorkspace={setWorkspace}
             onRunReport={runReport}
+            reportRunning={reportRunning}
             t={t}
           />
+          {reportOpen ? (
+            <ReportPanel
+              isRunning={reportRunning}
+              onClose={() => setReportOpen(false)}
+              onExport={exportAnalytics}
+              onQueueWorkflow={runAutomation}
+              onViewAnalytics={() => setActiveNav("Analytics")}
+              t={t}
+              workspace={workspace}
+            />
+          ) : null}
           {renderContent()}
         </section>
       </div>
@@ -792,6 +835,7 @@ function Header({
   workspace,
   setWorkspace,
   onRunReport,
+  reportRunning,
   t
 }: {
   activeNav: NavKey;
@@ -800,6 +844,7 @@ function Header({
   workspace: string;
   setWorkspace: (workspace: string) => void;
   onRunReport: () => void;
+  reportRunning: boolean;
   t: Translate;
 }) {
   const [openMenu, setOpenMenu] = useState<"language" | "workspace" | null>(null);
@@ -898,10 +943,112 @@ function Header({
           type="button"
         >
           <Sparkles className="h-4 w-4" />
-          {t("Run AI Report")}
+          {reportRunning ? t("Generating Report") : t("Run AI Report")}
         </button>
       </div>
     </header>
+  );
+}
+
+function ReportPanel({
+  isRunning,
+  onClose,
+  onExport,
+  onQueueWorkflow,
+  onViewAnalytics,
+  t,
+  workspace
+}: {
+  isRunning: boolean;
+  onClose: () => void;
+  onExport: () => void;
+  onQueueWorkflow: () => void;
+  onViewAnalytics: () => void;
+  t: Translate;
+  workspace: string;
+}) {
+  const reportItems = [
+    {
+      label: "Opportunity",
+      body: "Revenue is up 12.8% with strongest growth from automation-heavy teams.",
+      icon: ArrowUpRight,
+      tone: "text-emerald-100 bg-emerald-300/10 border-emerald-300/20"
+    },
+    {
+      label: "Risk",
+      body: "Trial accounts with low AI usage show the highest churn probability this week.",
+      icon: BrainCircuit,
+      tone: "text-amber-100 bg-amber-300/10 border-amber-300/20"
+    },
+    {
+      label: "Next action",
+      body: "Queue a customer success workflow and review the 30D analytics trend.",
+      icon: Activity,
+      tone: "text-cyan-100 bg-cyan-300/10 border-cyan-300/20"
+    }
+  ];
+
+  return (
+    <section className="glass-panel relative z-20 mt-5 rounded-2xl p-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/8 px-3 py-1 text-xs font-semibold text-cyan-100">
+            <Sparkles className="h-3.5 w-3.5" />
+            {isRunning ? t("Generating Report") : t("AI Report Ready")}
+          </div>
+          <h2 className="mt-3 text-2xl font-semibold text-white">{t("AI Report Ready")}</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">{t("Report generated for {workspace}", { workspace })}</p>
+        </div>
+
+        <button
+          aria-label={t("Close report")}
+          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-300 transition hover:bg-white/10 hover:text-white lg:static"
+          onClick={onClose}
+          type="button"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        {reportItems.map((item) => (
+          <article className="rounded-xl border border-white/10 bg-white/[0.035] p-4" key={item.label}>
+            <div className={clsx("flex h-10 w-10 items-center justify-center rounded-xl border", item.tone)}>
+              <item.icon className="h-4 w-4" />
+            </div>
+            <p className="mt-4 text-sm font-semibold text-white">{t(item.label)}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-400">{t(item.body)}</p>
+          </article>
+        ))}
+      </div>
+
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+        <button
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+          onClick={onViewAnalytics}
+          type="button"
+        >
+          <BarChart3 className="h-4 w-4" />
+          {t("View Analytics")}
+        </button>
+        <button
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-violet-300/20 bg-violet-300/10 px-4 py-3 text-sm font-semibold text-violet-100 transition hover:bg-violet-300/15"
+          onClick={onQueueWorkflow}
+          type="button"
+        >
+          <Play className="h-4 w-4" />
+          {t("Queue Workflow")}
+        </button>
+        <button
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 to-violet-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110"
+          onClick={onExport}
+          type="button"
+        >
+          <ArrowUpRight className="h-4 w-4" />
+          {t("Export Report CSV")}
+        </button>
+      </div>
+    </section>
   );
 }
 
