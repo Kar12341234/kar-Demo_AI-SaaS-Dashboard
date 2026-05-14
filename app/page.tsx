@@ -805,7 +805,7 @@ function Header({
   const [openMenu, setOpenMenu] = useState<"language" | "workspace" | null>(null);
 
   return (
-    <header className="mt-5 flex flex-col gap-4 lg:mt-0 xl:flex-row xl:items-end xl:justify-between">
+    <header className="relative z-40 mt-5 flex flex-col gap-4 lg:mt-0 xl:flex-row xl:items-end xl:justify-between">
       <div>
         <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/8 px-3 py-1 text-xs font-medium text-cyan-100">
           <CircleDot className="h-3.5 w-3.5" />
@@ -815,8 +815,8 @@ function Header({
         <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">{t(pageCopy[activeNav].description)}</p>
       </div>
 
-      <div className="glass-panel flex flex-col gap-2 rounded-2xl p-3 sm:flex-row sm:items-center">
-        <div className="relative">
+      <div className="glass-panel relative z-40 flex flex-col gap-2 overflow-visible rounded-2xl p-3 sm:flex-row sm:items-center">
+        <div className="relative z-50">
           <button
             aria-expanded={openMenu === "language"}
             className="flex h-14 min-w-36 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-left transition hover:bg-white/10"
@@ -832,7 +832,7 @@ function Header({
           </button>
 
           {openMenu === "language" ? (
-            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-full min-w-36 rounded-xl border border-cyan-300/20 bg-slate-950/95 p-1 shadow-glow backdrop-blur-xl">
+            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[100] w-full min-w-36 rounded-xl border border-cyan-300/20 bg-slate-950/95 p-1 shadow-glow backdrop-blur-xl">
               {languageOptions.map((option) => (
                 <button
                   className={clsx(
@@ -854,7 +854,7 @@ function Header({
           ) : null}
         </div>
 
-        <div className="relative">
+        <div className="relative z-50">
           <button
             aria-expanded={openMenu === "workspace"}
             className="flex h-14 min-w-56 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 text-left transition hover:bg-white/10"
@@ -870,7 +870,7 @@ function Header({
           </button>
 
           {openMenu === "workspace" ? (
-            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-30 w-full min-w-64 rounded-xl border border-violet-300/20 bg-slate-950/95 p-1 shadow-glow backdrop-blur-xl">
+            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[100] w-full min-w-64 rounded-xl border border-violet-300/20 bg-slate-950/95 p-1 shadow-glow backdrop-blur-xl">
               {workspaceOptions.map((option) => (
                 <button
                   className={clsx(
