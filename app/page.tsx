@@ -160,6 +160,36 @@ const translations: Record<Lang, Record<string, string>> = {
     "Client Revenue": "客戶營收",
     "AI Tasks Run": "AI 任務執行",
     "Delivery Health": "交付健康度",
+    "Total Users": "總用戶",
+    "AI Requests": "AI 請求",
+    "Conversion Rate": "轉換率",
+    "AI Usage": "AI 使用量",
+    "Token Usage": "Token 使用量",
+    "Used this month": "本月已使用",
+    "Remaining quota": "剩餘配額",
+    "Recent AI Tasks": "最近 AI 任務",
+    "AI Workflow Panel": "AI 工作流面板",
+    "Project Status Table": "專案狀態表",
+    "User Profile": "使用者",
+    Notifications: "通知",
+    "2 workflow alerts": "2 個工作流提醒",
+    "New client report ready": "新客戶報告已就緒",
+    "Model routing was optimized": "模型路由已最佳化",
+    "Account manager": "客戶經理",
+    Online: "在線",
+    "Summarize support tickets": "摘要客服票據",
+    "Generate client proposal": "產生客戶提案",
+    "Detect churn risk": "偵測流失風險",
+    "Route hot leads": "分配熱門名單",
+    "Completed 3 minutes ago": "3 分鐘前完成",
+    "Running now": "正在執行",
+    "Queued for review": "等待審核",
+    "Ready to send": "準備發送",
+    "Data ingestion": "資料匯入",
+    "AI enrichment": "AI 強化",
+    "Human approval": "人工審核",
+    "Client delivery": "客戶交付",
+    "Project Status": "專案狀態",
     "vs last month": "較上月",
     "Service Snapshot": "服務快照",
     "Hot leads routed": "熱門名單已分配",
@@ -296,6 +326,36 @@ const translations: Record<Lang, Record<string, string>> = {
     "Client Revenue": "客户收入",
     "AI Tasks Run": "AI 任务运行",
     "Delivery Health": "交付健康度",
+    "Total Users": "总用户",
+    "AI Requests": "AI 请求",
+    "Conversion Rate": "转化率",
+    "AI Usage": "AI 使用量",
+    "Token Usage": "Token 使用量",
+    "Used this month": "本月已使用",
+    "Remaining quota": "剩余配额",
+    "Recent AI Tasks": "最近 AI 任务",
+    "AI Workflow Panel": "AI 工作流面板",
+    "Project Status Table": "项目状态表",
+    "User Profile": "用户",
+    Notifications: "通知",
+    "2 workflow alerts": "2 个工作流提醒",
+    "New client report ready": "新客户报告已就绪",
+    "Model routing was optimized": "模型路由已优化",
+    "Account manager": "客户经理",
+    Online: "在线",
+    "Summarize support tickets": "摘要客服工单",
+    "Generate client proposal": "生成客户提案",
+    "Detect churn risk": "检测流失风险",
+    "Route hot leads": "分配热门名单",
+    "Completed 3 minutes ago": "3 分钟前完成",
+    "Running now": "正在运行",
+    "Queued for review": "等待审核",
+    "Ready to send": "准备发送",
+    "Data ingestion": "数据导入",
+    "AI enrichment": "AI 强化",
+    "Human approval": "人工审核",
+    "Client delivery": "客户交付",
+    "Project Status": "项目状态",
     "vs last month": "较上月",
     "Service Snapshot": "服务快照",
     "Hot leads routed": "热门名单已分配",
@@ -419,10 +479,10 @@ const pageCopy: Record<NavKey, { title: string; description: string }> = {
 };
 
 const initialMetrics: Metric[] = [
-  { label: "Qualified Leads", value: "1,284", change: "+18.4%", tone: "blue", icon: Users },
-  { label: "Client Revenue", value: "$128.6K", change: "+12.8%", tone: "emerald", icon: ArrowUpRight },
-  { label: "AI Tasks Run", value: "42,910", change: "+31.2%", tone: "violet", icon: BrainCircuit },
-  { label: "Delivery Health", value: "94%", change: "+4.6%", tone: "cyan", icon: Gauge }
+  { label: "Total Users", value: "24,892", change: "+18.4%", tone: "blue", icon: Users },
+  { label: "Revenue", value: "$128.6K", change: "+12.8%", tone: "emerald", icon: ArrowUpRight },
+  { label: "AI Requests", value: "1.86M", change: "+31.2%", tone: "violet", icon: BrainCircuit },
+  { label: "Conversion Rate", value: "8.74%", change: "+4.6%", tone: "cyan", icon: Gauge }
 ];
 
 const initialActivities: ActivityItem[] = [
@@ -896,6 +956,8 @@ function Header({
   t: Translate;
   workspace: string;
 }) {
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
   return (
     <header className="relative z-40 mt-5 flex flex-col gap-4 lg:mt-0 xl:flex-row xl:items-end xl:justify-between">
       <div>
@@ -931,6 +993,47 @@ function Header({
         >
           <Sparkles className="h-4 w-4" />
           {reportRunning ? t("Generating Report") : t("Run AI Report")}
+        </button>
+
+        <div className="relative z-50">
+          <button
+            aria-expanded={notificationsOpen}
+            aria-label={t("Notifications")}
+            className="relative flex h-14 w-14 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10"
+            onClick={() => setNotificationsOpen(!notificationsOpen)}
+            type="button"
+          >
+            <Bell className="h-5 w-5" />
+            <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-rose-400 ring-2 ring-slate-950" />
+          </button>
+          {notificationsOpen ? (
+            <div className="absolute right-0 top-[calc(100%+0.5rem)] z-[100] w-72 rounded-xl border border-cyan-300/20 bg-slate-950/95 p-2 shadow-glow backdrop-blur-xl">
+              {["2 workflow alerts", "New client report ready", "Model routing was optimized"].map((item) => (
+                <button
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/10"
+                  key={item}
+                  onClick={() => setNotificationsOpen(false)}
+                  type="button"
+                >
+                  {t(item)}
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <button
+          className="flex h-14 min-w-44 items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 text-left transition hover:bg-white/10"
+          onClick={() => setNotificationsOpen(!notificationsOpen)}
+          type="button"
+        >
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-cyan-300 to-violet-400 text-sm font-bold text-slate-950">
+            KS
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-white">Kar Studio</span>
+            <span className="block text-xs text-emerald-200">{t("Online")}</span>
+          </span>
         </button>
       </div>
     </header>
@@ -1014,10 +1117,22 @@ function DashboardPage({
   onReviewRisks: () => void;
   t: Translate;
 }) {
-  const queueItems = [
-    ["Lead response SLA", "In progress", "14 min"],
-    ["Proposal follow-ups", "Complete", "32 sent"],
-    ["Client health review", "Needs review", "2 accounts"]
+  const recentTasks = [
+    ["Summarize support tickets", "Completed 3 minutes ago", "Complete"],
+    ["Generate client proposal", "Running now", "In progress"],
+    ["Detect churn risk", "Queued for review", "Needs review"],
+    ["Route hot leads", "Ready to send", "Complete"]
+  ];
+  const workflowSteps = [
+    ["Data ingestion", "Complete", "100%"],
+    ["AI enrichment", "In progress", "68%"],
+    ["Human approval", "Needs review", "2 items"],
+    ["Client delivery", "Queued", "Next"]
+  ];
+  const projectRows = [
+    ["Lead Scoring Engine", "Live", "92%"],
+    ["Support Copilot Launch", "Training", "68%"],
+    ["Revenue Forecasting", "Review", "81%"]
   ];
 
   return (
@@ -1028,21 +1143,21 @@ function DashboardPage({
         ))}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_0.8fr]">
+      <div className="grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
         <section className="glass-panel rounded-2xl p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
+          <div className="flex flex-col gap-4 2xl:flex-row 2xl:items-center 2xl:justify-between">
+            <div className="min-w-0">
               <p className="text-sm font-medium text-cyan-100">{t("Service Snapshot")}</p>
-              <h2 className="mt-2 text-xl font-semibold text-white">{t("ClientFlow AI")}</h2>
+              <h2 className="mt-2 text-2xl font-semibold text-white">{t("ClientFlow AI")}</h2>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10" onClick={onGenerateTasks} type="button">
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <button className="shrink-0 whitespace-nowrap rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10" onClick={onGenerateTasks} type="button">
                 {t("Generate outreach tasks")}
               </button>
-              <button className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10" onClick={onReviewRisks} type="button">
+              <button className="shrink-0 whitespace-nowrap rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10" onClick={onReviewRisks} type="button">
                 {t("Review delivery risks")}
               </button>
-              <button className="rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110" onClick={onOpenAnalytics} type="button">
+              <button className="shrink-0 whitespace-nowrap rounded-xl bg-cyan-300 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:brightness-110" onClick={onOpenAnalytics} type="button">
                 {t("Open analytics")}
               </button>
             </div>
@@ -1065,22 +1180,115 @@ function DashboardPage({
         </section>
 
         <section className="glass-panel rounded-2xl p-5">
-          <p className="text-sm font-medium text-violet-100">{t("Priority Queue")}</p>
-          <div className="mt-4 space-y-3">
-            {queueItems.map(([title, state, meta]) => (
-              <article className="rounded-xl border border-white/10 bg-white/[0.04] p-4" key={title}>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-white">{t(title)}</p>
-                  <span className="text-xs text-slate-500">{meta}</span>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-violet-100">{t("AI Usage")}</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">{t("Token Usage")}</h2>
+            </div>
+            <BrainCircuit className="h-5 w-5 text-violet-200" />
+          </div>
+          <div className="mt-6 space-y-5">
+            <div>
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-3xl font-semibold text-white">48.3M</p>
+                  <p className="mt-1 text-sm text-slate-500">{t("Used this month")}</p>
                 </div>
-                <p className="mt-2 text-sm text-slate-400">{t(state)}</p>
+                <span className="rounded-full bg-cyan-300/10 px-3 py-1 text-xs font-semibold text-cyan-100">76%</span>
+              </div>
+              <div className="mt-4 h-2.5 rounded-full bg-slate-800">
+                <div className="h-2.5 w-[76%] rounded-full bg-gradient-to-r from-cyan-300 to-violet-400" />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-sm text-slate-400">{t("AI Requests")}</p>
+                <p className="mt-2 text-xl font-semibold text-white">1.86M</p>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-sm text-slate-400">{t("Remaining quota")}</p>
+                <p className="mt-2 text-xl font-semibold text-white">15.2M</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+        <section className="glass-panel rounded-2xl p-5">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm font-medium text-cyan-100">{t("Recent AI Tasks")}</p>
+            <Clock3 className="h-5 w-5 text-cyan-100" />
+          </div>
+          <div className="mt-4 space-y-3">
+            {recentTasks.map(([task, meta, state]) => (
+              <article className="rounded-xl border border-white/10 bg-white/[0.04] p-4" key={task}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{t(task)}</p>
+                    <p className="mt-1 text-xs text-slate-500">{t(meta)}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-semibold text-slate-300">{t(state)}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="glass-panel rounded-2xl p-5">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm font-medium text-violet-100">{t("AI Workflow Panel")}</p>
+            <button className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/10" onClick={onGenerateTasks} type="button">
+              {t("Run playbook")}
+            </button>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-4">
+            {workflowSteps.map(([step, state, meta], index) => (
+              <article className="relative rounded-xl border border-white/10 bg-white/[0.04] p-4" key={step}>
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-300/10 text-cyan-100">
+                  {index + 1}
+                </div>
+                <p className="mt-4 text-sm font-semibold text-white">{t(step)}</p>
+                <p className="mt-1 text-xs text-slate-500">{t(state)} · {meta}</p>
               </article>
             ))}
           </div>
         </section>
       </div>
 
-      <ActivityPanel activities={activities} onClear={onClearActivities} t={t} />
+      <div className="grid gap-5 xl:grid-cols-[1fr_0.82fr]">
+        <section className="glass-panel rounded-2xl p-5">
+          <div className="flex items-center justify-between gap-4">
+            <p className="text-sm font-medium text-cyan-100">{t("Project Status Table")}</p>
+            <button className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:bg-white/10" onClick={onReviewRisks} type="button">
+              {t("Projects")}
+            </button>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[520px] border-separate border-spacing-y-2 text-left text-sm">
+              <thead className="text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-3 py-2 font-medium">{t("Project name")}</th>
+                  <th className="px-3 py-2 font-medium">{t("Status")}</th>
+                  <th className="px-3 py-2 font-medium">{t("Progress")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projectRows.map(([name, status, progress]) => (
+                  <tr className="bg-white/[0.035]" key={name}>
+                    <td className="rounded-l-xl border-y border-l border-white/10 px-3 py-4 font-semibold text-white">{name}</td>
+                    <td className="border-y border-white/10 px-3 py-4 text-slate-300">{t(status)}</td>
+                    <td className="rounded-r-xl border-y border-r border-white/10 px-3 py-4 text-slate-300">{progress}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <ActivityPanel activities={activities} onClear={onClearActivities} t={t} />
+      </div>
+
     </section>
   );
 }
